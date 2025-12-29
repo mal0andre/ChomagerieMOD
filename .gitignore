@@ -295,4 +295,5 @@ gradle-app.setting
 ### Gradle Patch ###
 **/build/
 
-# End of https://www.toptal.com/developers/gitignore/api/windows,linux,macos,java,gradle,intellij+all,eclipse,visualstudiocode,netbeans
+
+/run/
