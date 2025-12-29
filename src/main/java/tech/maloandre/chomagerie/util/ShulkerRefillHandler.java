@@ -22,6 +22,29 @@ public class ShulkerRefillHandler {
     }
 
     /**
+     * Vérifie si le joueur a déjà l'item dans son inventaire principal (hors shulker boxes)
+     * @param inventory L'inventaire du joueur
+     * @param itemToCheck L'item à rechercher
+     * @return true si l'item est présent dans l'inventaire principal
+     */
+    private static boolean hasItemInMainInventory(Inventory inventory, Item itemToCheck) {
+        for (int i = 0; i < inventory.size(); i++) {
+            ItemStack stack = inventory.getStack(i);
+
+            // Ignorer les shulker boxes
+            if (isShulkerBox(stack.getItem())) {
+                continue;
+            }
+
+            // Vérifier si on a trouvé l'item
+            if (!stack.isEmpty() && stack.getItem() == itemToCheck) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Tente de recharger un slot vide depuis les shulker boxes dans l'inventaire
      * @param player Le joueur
      * @param emptySlot Le slot qui vient de se vider
@@ -33,6 +56,11 @@ public class ShulkerRefillHandler {
         }
 
         Inventory inventory = player.getInventory();
+
+        // Vérifier si le joueur a déjà l'item dans son inventaire principal
+        if (hasItemInMainInventory(inventory, itemToRefill)) {
+            return; // Ne pas refill si l'item est déjà présent ailleurs dans l'inventaire
+        }
 
         // Parcourir l'inventaire à la recherche de shulker boxes
         for (int i = 0; i < inventory.size(); i++) {
