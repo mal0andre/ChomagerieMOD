@@ -2,8 +2,8 @@ package tech.maloandre.chomagerie.mixin;
 
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.collection.DefaultedList;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -13,9 +13,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import tech.maloandre.chomagerie.event.ItemStackDepletedCallback;
 
-import java.util.HashMap;
-import java.util.Map;
-
 @Mixin(PlayerInventory.class)
 public abstract class PlayerInventoryMixin {
 
@@ -24,14 +21,16 @@ public abstract class PlayerInventoryMixin {
     public PlayerEntity player;
 
     @Shadow
-    @Final
-    private DefaultedList<ItemStack> main;
+    public int getSelectedSlot() {
+        return 0; // Stub, sera remplacé par Shadow
+    }
 
     @Unique
-    private final Map<Integer, ItemStack> chomagerie$previousStacks = new HashMap<>();
+    private Item chomagerie$lastSelectedItem = null;
+
 
     /**
-     * Surveille quand un stack se vide par décrémentation
+     * Surveille quand un stack se vide par décrémentation dans le slot sélectionné uniquement
      */
     @Inject(method = "updateItems", at = @At("HEAD"))
     private void onUpdateItems(CallbackInfo ci) {
@@ -40,24 +39,21 @@ public abstract class PlayerInventoryMixin {
         }
 
         PlayerInventory inventory = (PlayerInventory) (Object) this;
+        int currentSelectedSlot = getSelectedSlot();
+        ItemStack currentStack = inventory.getStack(currentSelectedSlot);
 
-        // Vérifier chaque slot de la hotbar et de l'inventaire principal
-        for (int i = 0; i < main.size(); i++) {
-            ItemStack currentStack = inventory.getStack(i);
-            ItemStack previousStack = chomagerie$previousStacks.get(i);
-
-            if (previousStack != null && !previousStack.isEmpty() && currentStack.isEmpty()) {
-                // Le stack s'est vidé, déclencher l'événement
-                ItemStackDepletedCallback.EVENT.invoker().onItemStackDepleted(
-                        player, i, previousStack.getItem(), previousStack
-                );
-            }
-
-            // Mettre à jour l'état précédent
-            if (!currentStack.isEmpty()) {
-                chomagerie$previousStacks.put(i, currentStack.copy());
-            } else {
-                chomagerie$previousStacks.remove(i);
+        // Vérifier si le slot sélectionné s'est vidé
+        if (chomagerie$lastSelectedItem != null && currentStack.isEmpty()) {
+            // Le stack s'est vidé, déclencher l'événement
+            ItemStackDepletedCallback.EVENT.invoker().onItemStackDepleted(
+                    player, currentSelectedSlot, chomagerie$lastSelectedItem, null
+            );
+            chomagerie$lastSelectedItem = null;
+        }
+        // Si l'item a changé (pas le même), réinitialiser le suivi
+        else if (!currentStack.isEmpty()) {
+            if (chomagerie$lastSelectedItem != currentStack.getItem()) {
+                chomagerie$lastSelectedItem = currentStack.getItem();
             }
         }
     }
