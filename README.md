@@ -6,12 +6,14 @@ Ce mod Minecraft Fabric ajoute une fonctionnalité de rechargement automatique d
 
 ## Fonctionnalités
 
-### Rechargement automatique
-Lorsque vous utilisez complètement un stack d'items (blocs, nourriture, etc.) dans votre inventaire :
-- Le mod détecte automatiquement que le slot est vide
+### Rechargement automatique intelligent
+Lorsque vous **utilisez complètement** un stack d'items dans votre main (placement de blocs, consommation, etc.) :
+- Le mod détecte automatiquement que votre stack s'est vidé par utilisation
 - Il recherche des shulker boxes dans votre inventaire
 - Il trouve le même type d'item dans les shulker boxes
-- Il transfère automatiquement un stack depuis la shulker box vers le slot vide
+- Il transfère automatiquement un stack depuis la shulker box vers votre main
+
+**Important :** Le refill se déclenche uniquement lors de l'**utilisation active** d'items (placement de blocs, etc.), pas lors de manipulations d'inventaire (déplacer un stack, le jeter, etc.)
 
 ### Côté serveur uniquement
 Ce mod fonctionne **côté serveur** uniquement. Cela signifie que :
