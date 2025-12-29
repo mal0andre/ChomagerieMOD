@@ -41,10 +41,15 @@ public record ConfigSyncPayload(boolean shulkerRefillEnabled, boolean showRefill
 
             // Mettre à jour la configuration du joueur côté serveur
             ServerConfig config = ServerConfig.getInstance();
+
+            // Marquer que le joueur a le mod installé
+            config.setPlayerHasMod(player.getUuid(), true);
+
+            // Appliquer sa configuration
             config.setShulkerRefillEnabled(player.getUuid(), payload.shulkerRefillEnabled);
             config.setShowRefillMessages(player.getUuid(), payload.showRefillMessages);
 
-            Chomagerie.LOGGER.info("Configuration synchronisée pour le joueur {} - ShulkerRefill: {}",
+            Chomagerie.LOGGER.info("Configuration synchronisée pour le joueur {} - ShulkerRefill: {} (Mod installé)",
                 player.getName().getString(), payload.shulkerRefillEnabled);
         });
     }

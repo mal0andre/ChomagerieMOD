@@ -90,7 +90,25 @@ public class ServerConfig {
      * Vérifie si le ShulkerRefill est activé pour un joueur
      */
     public boolean isShulkerRefillEnabled(UUID playerUuid) {
-        return getPlayerConfig(playerUuid).shulkerRefillEnabled;
+        PlayerConfig config = getPlayerConfig(playerUuid);
+        // Si le joueur n'a pas le mod, ne pas activer le refill
+        return config.hasModInstalled && config.shulkerRefillEnabled;
+    }
+
+    /**
+     * Marque qu'un joueur a le mod installé côté client
+     */
+    public void setPlayerHasMod(UUID playerUuid, boolean hasMod) {
+        PlayerConfig config = getPlayerConfig(playerUuid);
+        config.hasModInstalled = hasMod;
+        setPlayerConfig(playerUuid, config);
+    }
+
+    /**
+     * Vérifie si un joueur a le mod installé
+     */
+    public boolean playerHasMod(UUID playerUuid) {
+        return getPlayerConfig(playerUuid).hasModInstalled;
     }
 
     /**
@@ -113,6 +131,7 @@ public class ServerConfig {
      * Configuration individuelle d'un joueur
      */
     public static class PlayerConfig {
+        public boolean hasModInstalled = false; // false par défaut, true quand le client envoie la config
         public boolean shulkerRefillEnabled = true;
         public boolean showRefillMessages = true;
 
