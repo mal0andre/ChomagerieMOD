@@ -1,0 +1,35 @@
+{
+	"schemaVersion": 1,
+	"id": "chomagerie",
+	"version": "${version}",
+	"name": "Chomagerie",
+	"description": "Mod du serveur Chomagerie",
+	"authors": [],
+	"contact": {},
+	"license": "All-Rights-Reserved",
+	"icon": "assets/chomagerie/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"fabric-datagen": [
+			"tech.maloandre.chomagerie.client.ChomagerieDataGenerator"
+		],
+		"client": [
+			"tech.maloandre.chomagerie.client.ChomagerieClient"
+		],
+		"main": [
+			"tech.maloandre.chomagerie.Chomagerie"
+		]
+	},
+	"mixins": [
+		"chomagerie.mixins.json",
+		{
+			"config": "chomagerie.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=${loader_version}",
+		"fabric-api": "*",
+		"minecraft": "${minecraft_version}"
+	}
+}
