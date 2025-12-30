@@ -3,11 +3,14 @@ package tech.maloandre.chomagerie;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.server.network.ServerPlayerEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tech.maloandre.chomagerie.config.ServerConfig;
 import tech.maloandre.chomagerie.event.ItemStackDepletedCallback;
 import tech.maloandre.chomagerie.network.ConfigSyncPayload;
+import tech.maloandre.chomagerie.network.RefillNotificationPayload;
 import tech.maloandre.chomagerie.util.ShulkerRefillHandler;
 
 public class Chomagerie implements ModInitializer {
@@ -22,8 +25,9 @@ public class Chomagerie implements ModInitializer {
 		// Initialiser la configuration serveur
 		ServerConfig.getInstance();
 
-		// Enregistrer le type de paquet réseau
+		// Enregistrer les types de paquets réseau
 		PayloadTypeRegistry.playC2S().register(ConfigSyncPayload.ID, ConfigSyncPayload.CODEC);
+		PayloadTypeRegistry.playS2C().register(RefillNotificationPayload.ID, RefillNotificationPayload.CODEC);
 
 		// Enregistrer le handler réseau côté serveur
 		ConfigSyncPayload.registerServerHandler();
@@ -43,7 +47,12 @@ public class Chomagerie implements ModInitializer {
 				boolean isEnabled = ServerConfig.getInstance().isShulkerRefillEnabled(player.getUuid());
 
 				if (isEnabled) {
-					ShulkerRefillHandler.tryRefillFromShulker(player, slot, item);
+					ShulkerRefillHandler.RefillResult result = ShulkerRefillHandler.tryRefillFromShulker(player, slot, item);
+
+					// Si le refill a réussi, envoyer une notification au client
+					if (result.success && player instanceof ServerPlayerEntity serverPlayer) {
+						ServerPlayNetworking.send(serverPlayer, new RefillNotificationPayload(result.itemName));
+					}
 				} else if (!ServerConfig.getInstance().playerHasMod(player.getUuid())) {
 					// Le joueur n'a pas le mod, on ne fait rien (silencieux)
 					LOGGER.debug("Refill ignoré pour {} - Mod non installé", player.getName().getString());

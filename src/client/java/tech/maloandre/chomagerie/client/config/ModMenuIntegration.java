@@ -50,6 +50,18 @@ public class ModMenuIntegration implements ModMenuApi {
                 })
                 .build());
 
+            // Option pour jouer des sons lors du refill
+            shulkerRefillCategory.addEntry(entryBuilder.startBooleanToggle(
+                    Text.literal("Jouer des sons"),
+                    config.shulkerRefill.shouldPlaySounds()
+                )
+                .setDefaultValue(true)
+                .setTooltip(Text.literal("Joue un son quand un item est rechargé depuis une shulker box"))
+                .setSaveConsumer(newValue -> {
+                    config.shulkerRefill.setPlaySounds(newValue);
+                })
+                .build());
+
             // Futures catégories (exemples commentés)
             // ConfigCategory autoCraftCategory = builder.getOrCreateCategory(Text.literal("AutoCraft"));
             // ConfigCategory storageCategory = builder.getOrCreateCategory(Text.literal("Storage Manager"));

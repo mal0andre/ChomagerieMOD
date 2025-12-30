@@ -14,6 +14,16 @@ import java.util.List;
 
 public class ShulkerRefillHandler {
 
+    public static class RefillResult {
+        public final boolean success;
+        public final String itemName;
+
+        public RefillResult(boolean success, String itemName) {
+            this.success = success;
+            this.itemName = itemName;
+        }
+    }
+
     /**
      * Vérifie si un item est une shulker box
      */
@@ -117,27 +127,31 @@ public class ShulkerRefillHandler {
      * @param player Le joueur
      * @param emptySlot Le slot qui vient de se vider
      * @param itemToRefill L'item à recharger
+     * @return RefillResult contenant le succès et le nom de l'item
      */
-    public static void tryRefillFromShulker(PlayerEntity player, int emptySlot, Item itemToRefill) {
+    public static RefillResult tryRefillFromShulker(PlayerEntity player, int emptySlot, Item itemToRefill) {
         if (player.getEntityWorld().isClient()) {
-            return; // Ne fonctionne que côté serveur
+            return new RefillResult(false, ""); // Ne fonctionne que côté serveur
         }
 
         Inventory inventory = player.getInventory();
 
         // Vérifier si le joueur a déjà l'item dans son inventaire principal
         if (hasItemInMainInventory(inventory, itemToRefill)) {
-            return; // Ne pas refill si l'item est déjà présent ailleurs dans l'inventaire
+            return new RefillResult(false, ""); // Ne pas refill si l'item est déjà présent ailleurs dans l'inventaire
         }
+
+        String itemName = itemToRefill.getName().getString();
 
         // 1. Essayer d'abord dans l'inventaire principal
         if (tryRefillFromInventoryShulkers(inventory, inventory, emptySlot, itemToRefill)) {
-            return; // Refill effectué depuis l'inventaire
+            return new RefillResult(true, itemName); // Refill effectué depuis l'inventaire
         }
 
         // 2. Si rien trouvé, chercher dans l'ender chest
         Inventory enderChest = player.getEnderChestInventory();
-        tryRefillFromInventoryShulkers(enderChest, inventory, emptySlot, itemToRefill);
+        boolean success = tryRefillFromInventoryShulkers(enderChest, inventory, emptySlot, itemToRefill);
+        return new RefillResult(success, success ? itemName : "");
     }
 }
 

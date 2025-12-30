@@ -99,6 +99,7 @@ public class ChomagerieConfig {
     public static class ShulkerRefillConfig {
         public boolean enabled = true;
         public boolean showRefillMessages = true;
+        public boolean playSounds = true;
 
         public boolean isEnabled() {
             return enabled;
@@ -114,6 +115,14 @@ public class ChomagerieConfig {
 
         public void setShowRefillMessages(boolean show) {
             this.showRefillMessages = show;
+        }
+
+        public boolean shouldPlaySounds() {
+            return playSounds;
+        }
+
+        public void setPlaySounds(boolean play) {
+            this.playSounds = play;
         }
     }
 }
