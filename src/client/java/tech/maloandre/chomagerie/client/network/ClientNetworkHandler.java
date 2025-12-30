@@ -25,7 +25,9 @@ public class ClientNetworkHandler {
         ChomagerieConfig config = ChomagerieConfig.getInstance();
         ConfigSyncPayload payload = new ConfigSyncPayload(
             config.shulkerRefill.isEnabled(),
-            config.shulkerRefill.shouldShowRefillMessages()
+            config.shulkerRefill.shouldShowRefillMessages(),
+            config.shulkerRefill.isFilterByNameEnabled(),
+            config.shulkerRefill.getShulkerNameFilter()
         );
 
         ClientPlayNetworking.send(payload);

@@ -25,6 +25,18 @@ public class ModMenuIntegration implements ModMenuApi {
             ConfigCategory shulkerRefillCategory = builder.getOrCreateCategory(Text.literal("ShulkerRefill"));
             ConfigEntryBuilder entryBuilder = builder.entryBuilder();
 
+            // Option pour afficher les messages de refill
+            shulkerRefillCategory.addEntry(entryBuilder.startBooleanToggle(
+                    Text.literal("Afficher les messages"),
+                    config.shulkerRefill.shouldShowRefillMessages()
+                )
+                .setDefaultValue(true)
+                .setTooltip(Text.literal("Affiche un message quand un item est rechargé depuis une shulker box"))
+                .setSaveConsumer(newValue -> {
+                    config.shulkerRefill.setShowRefillMessages(newValue);
+                })
+                .build());
+
             // Option pour activer/désactiver ShulkerRefill
             shulkerRefillCategory.addEntry(entryBuilder.startBooleanToggle(
                     Text.literal("Activer ShulkerRefill"),
@@ -38,17 +50,6 @@ public class ModMenuIntegration implements ModMenuApi {
                 })
                 .build());
 
-            // Option pour afficher les messages de refill
-            shulkerRefillCategory.addEntry(entryBuilder.startBooleanToggle(
-                    Text.literal("Afficher les messages"),
-                    config.shulkerRefill.shouldShowRefillMessages()
-                )
-                .setDefaultValue(true)
-                .setTooltip(Text.literal("Affiche un message quand un item est rechargé depuis une shulker box"))
-                .setSaveConsumer(newValue -> {
-                    config.shulkerRefill.setShowRefillMessages(newValue);
-                })
-                .build());
 
             // Option pour jouer des sons lors du refill
             shulkerRefillCategory.addEntry(entryBuilder.startBooleanToggle(
@@ -59,6 +60,30 @@ public class ModMenuIntegration implements ModMenuApi {
                 .setTooltip(Text.literal("Joue un son quand un item est rechargé depuis une shulker box"))
                 .setSaveConsumer(newValue -> {
                     config.shulkerRefill.setPlaySounds(newValue);
+                })
+                .build());
+
+            // Option pour filtrer par nom de shulker box
+            shulkerRefillCategory.addEntry(entryBuilder.startBooleanToggle(
+                    Text.literal("Filtrer par nom de shulker"),
+                    config.shulkerRefill.isFilterByNameEnabled()
+                )
+                .setDefaultValue(false)
+                .setTooltip(Text.literal("N'utilise que les shulker boxes avec un nom spécifique pour le refill"))
+                .setSaveConsumer(newValue -> {
+                    config.shulkerRefill.setFilterByName(newValue);
+                })
+                .build());
+
+            // Option pour définir le nom des shulker boxes à utiliser
+            shulkerRefillCategory.addEntry(entryBuilder.startStrField(
+                    Text.literal("Nom des shulker boxes"),
+                    config.shulkerRefill.getShulkerNameFilter()
+                )
+                .setDefaultValue("restock same")
+                .setTooltip(Text.literal("Seules les shulker boxes avec ce nom exact seront utilisées pour le refill"))
+                .setSaveConsumer(newValue -> {
+                    config.shulkerRefill.setShulkerNameFilter(newValue);
                 })
                 .build());
 

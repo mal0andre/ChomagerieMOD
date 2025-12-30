@@ -12,7 +12,12 @@ import tech.maloandre.chomagerie.config.ServerConfig;
 /**
  * Paquet pour synchroniser la configuration du client vers le serveur
  */
-public record ConfigSyncPayload(boolean shulkerRefillEnabled, boolean showRefillMessages) implements CustomPayload {
+public record ConfigSyncPayload(
+    boolean shulkerRefillEnabled,
+    boolean showRefillMessages,
+    boolean filterByName,
+    String shulkerNameFilter
+) implements CustomPayload {
 
     public static final CustomPayload.Id<ConfigSyncPayload> ID =
         new CustomPayload.Id<>(Identifier.of(Chomagerie.MOD_ID, "config_sync"));
@@ -21,8 +26,15 @@ public record ConfigSyncPayload(boolean shulkerRefillEnabled, boolean showRefill
         (value, buf) -> {
             buf.writeBoolean(value.shulkerRefillEnabled);
             buf.writeBoolean(value.showRefillMessages);
+            buf.writeBoolean(value.filterByName);
+            buf.writeString(value.shulkerNameFilter);
         },
-        (buf) -> new ConfigSyncPayload(buf.readBoolean(), buf.readBoolean())
+        (buf) -> new ConfigSyncPayload(
+            buf.readBoolean(),
+            buf.readBoolean(),
+            buf.readBoolean(),
+            buf.readString()
+        )
     );
 
 
@@ -48,9 +60,11 @@ public record ConfigSyncPayload(boolean shulkerRefillEnabled, boolean showRefill
             // Appliquer sa configuration
             config.setShulkerRefillEnabled(player.getUuid(), payload.shulkerRefillEnabled);
             config.setShowRefillMessages(player.getUuid(), payload.showRefillMessages);
+            config.setFilterByName(player.getUuid(), payload.filterByName);
+            config.setShulkerNameFilter(player.getUuid(), payload.shulkerNameFilter);
 
-            Chomagerie.LOGGER.info("Configuration synchronisée pour le joueur {} - ShulkerRefill: {} (Mod installé)",
-                player.getName().getString(), payload.shulkerRefillEnabled);
+            Chomagerie.LOGGER.info("Configuration synchronisée pour le joueur {} - ShulkerRefill: {}, Filtre: {} (Mod installé)",
+                player.getName().getString(), payload.shulkerRefillEnabled, payload.filterByName ? payload.shulkerNameFilter : "désactivé");
         });
     }
 }

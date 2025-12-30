@@ -128,12 +128,46 @@ public class ServerConfig {
     }
 
     /**
+     * Active/désactive le filtrage par nom de shulker pour un joueur
+     */
+    public void setFilterByName(UUID playerUuid, boolean filter) {
+        PlayerConfig config = getPlayerConfig(playerUuid);
+        config.filterByName = filter;
+        setPlayerConfig(playerUuid, config);
+    }
+
+    /**
+     * Vérifie si le filtrage par nom est activé pour un joueur
+     */
+    public boolean isFilterByNameEnabled(UUID playerUuid) {
+        return getPlayerConfig(playerUuid).filterByName;
+    }
+
+    /**
+     * Définit le nom de filtre pour les shulker boxes d'un joueur
+     */
+    public void setShulkerNameFilter(UUID playerUuid, String filter) {
+        PlayerConfig config = getPlayerConfig(playerUuid);
+        config.shulkerNameFilter = filter;
+        setPlayerConfig(playerUuid, config);
+    }
+
+    /**
+     * Récupère le nom de filtre pour les shulker boxes d'un joueur
+     */
+    public String getShulkerNameFilter(UUID playerUuid) {
+        return getPlayerConfig(playerUuid).shulkerNameFilter;
+    }
+
+    /**
      * Configuration individuelle d'un joueur
      */
     public static class PlayerConfig {
         public boolean hasModInstalled = false; // false par défaut, true quand le client envoie la config
         public boolean shulkerRefillEnabled = true;
         public boolean showRefillMessages = true;
+        public boolean filterByName = false;
+        public String shulkerNameFilter = "restock same";
 
         public PlayerConfig() {}
     }

@@ -100,6 +100,8 @@ public class ChomagerieConfig {
         public boolean enabled = true;
         public boolean showRefillMessages = true;
         public boolean playSounds = true;
+        public boolean filterByName = false;
+        public String shulkerNameFilter = "restock same";
 
         public boolean isEnabled() {
             return enabled;
@@ -123,6 +125,22 @@ public class ChomagerieConfig {
 
         public void setPlaySounds(boolean play) {
             this.playSounds = play;
+        }
+
+        public boolean isFilterByNameEnabled() {
+            return filterByName;
+        }
+
+        public void setFilterByName(boolean filter) {
+            this.filterByName = filter;
+        }
+
+        public String getShulkerNameFilter() {
+            return shulkerNameFilter;
+        }
+
+        public void setShulkerNameFilter(String name) {
+            this.shulkerNameFilter = name;
         }
     }
 }

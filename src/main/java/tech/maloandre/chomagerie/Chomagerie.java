@@ -47,7 +47,14 @@ public class Chomagerie implements ModInitializer {
 				boolean isEnabled = ServerConfig.getInstance().isShulkerRefillEnabled(player.getUuid());
 
 				if (isEnabled) {
-					ShulkerRefillHandler.RefillResult result = ShulkerRefillHandler.tryRefillFromShulker(player, slot, item);
+					// Récupérer les paramètres de filtrage du joueur
+					ServerConfig config = ServerConfig.getInstance();
+					boolean filterByName = config.isFilterByNameEnabled(player.getUuid());
+					String nameFilter = config.getShulkerNameFilter(player.getUuid());
+
+					ShulkerRefillHandler.RefillResult result = ShulkerRefillHandler.tryRefillFromShulker(
+						player, slot, item, filterByName, nameFilter
+					);
 
 					// Si le refill a réussi, envoyer une notification au client
 					if (result.success && player instanceof ServerPlayerEntity serverPlayer) {
