@@ -31,9 +31,12 @@ public abstract class PlayerInventoryMixin {
     @Unique
     private int chomagerie$lastSelectedCount = 0;
 
+    @Unique
+    private int chomagerie$lastSelectedSlot = -1;
+
 
     /**
-     * Surveille quand un stack se vide par décrémentation dans le slot sélectionné uniquement
+     * Surveille quand un stack se vide COMPLÈTEMENT par utilisation dans le slot sélectionné uniquement
      */
     @Inject(method = "updateItems", at = @At("HEAD"))
     private void onUpdateItems(CallbackInfo ci) {
@@ -45,32 +48,51 @@ public abstract class PlayerInventoryMixin {
         int currentSelectedSlot = getSelectedSlot();
         ItemStack currentStack = inventory.getStack(currentSelectedSlot);
 
-        // Si on surveillait un item et que le slot est maintenant vide
+        // Si le joueur a changé de slot, réinitialiser la surveillance
+        if (chomagerie$lastSelectedSlot != currentSelectedSlot) {
+            chomagerie$lastSelectedSlot = currentSelectedSlot;
+            chomagerie$lastSelectedItem = currentStack.isEmpty() ? null : currentStack.getItem();
+            chomagerie$lastSelectedCount = currentStack.getCount();
+            return; // Ne rien faire d'autre ce tick
+        }
+
+        // Cas 1: On surveillait un item et le slot est maintenant complètement vide
         if (chomagerie$lastSelectedItem != null && currentStack.isEmpty()) {
-            // Vérifier que c'était bien une décrémentation (le count était à 1 avant)
-            // Si le count était > 1, c'est probablement un déplacement manuel
+            // Vérifier que c'était une consommation naturelle (count passé de 1 à 0)
+            // Si le count était > 1, le joueur a probablement déplacé/jeté le stack manuellement
             if (chomagerie$lastSelectedCount == 1) {
-                // Le stack s'est vidé par consommation, déclencher l'événement
+                // Le stack s'est vidé naturellement (dernier bloc posé, dernier item consommé, etc.)
                 ItemStackDepletedCallback.EVENT.invoker().onItemStackDepleted(
                         player, currentSelectedSlot, chomagerie$lastSelectedItem, null
                 );
             }
+            // Réinitialiser la surveillance
             chomagerie$lastSelectedItem = null;
             chomagerie$lastSelectedCount = 0;
         }
-        // Si on a un item dans le slot sélectionné
+        // Cas 2: On a un item dans le slot sélectionné
         else if (!currentStack.isEmpty()) {
-            // Si c'est le même item, mettre à jour le count
-            if (chomagerie$lastSelectedItem == currentStack.getItem()) {
-                chomagerie$lastSelectedCount = currentStack.getCount();
+            Item currentItem = currentStack.getItem();
+            int currentCount = currentStack.getCount();
+
+            // Si c'est le même item qu'avant
+            if (chomagerie$lastSelectedItem == currentItem) {
+                // Mettre à jour uniquement si le count a diminué (utilisation normale)
+                // Si le count a augmenté ou changé drastiquement, c'est une manipulation manuelle
+                if (currentCount < chomagerie$lastSelectedCount) {
+                    chomagerie$lastSelectedCount = currentCount;
+                } else if (currentCount > chomagerie$lastSelectedCount) {
+                    // Le count a augmenté (ajout manuel, stack, etc.), on réinitialise
+                    chomagerie$lastSelectedCount = currentCount;
+                }
             }
             // Si l'item a changé, commencer à surveiller le nouveau
             else {
-                chomagerie$lastSelectedItem = currentStack.getItem();
-                chomagerie$lastSelectedCount = currentStack.getCount();
+                chomagerie$lastSelectedItem = currentItem;
+                chomagerie$lastSelectedCount = currentCount;
             }
         }
-        // Si le slot est vide et qu'on ne surveillait rien
+        // Cas 3: Le slot est vide et on ne surveillait rien
         else {
             chomagerie$lastSelectedItem = null;
             chomagerie$lastSelectedCount = 0;
