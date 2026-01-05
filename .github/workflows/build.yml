@@ -81,4 +81,4 @@ jobs:
             --target=${{ github.ref_name }} \
             --draft=false \
             --prerelease=${{ inputs.releaseType != 'stable' }} \
-            build/libs/*.jar
+            build/libs/*[!sources].jar
