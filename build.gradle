@@ -121,3 +121,15 @@ publishing {
 		// retrieving dependencies.
 	}
 }
+
+tasks.register("printMinecraftVersion") {
+	doLast {
+		println project.minecraft_version
+	}
+}
+
+tasks.register("printModVersion") {
+	doLast {
+		println project.version
+	}
+}
