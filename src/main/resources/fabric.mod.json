@@ -3,9 +3,20 @@
 	"id": "chomagerie",
 	"version": "${version}",
 	"name": "Chomagerie",
-	"description": "Mod du serveur Chomagerie",
-	"authors": [],
-	"contact": {},
+	"description": "Mod client pour le serveur Chomagerie.\nInclut ShulkerRefill - un système de refill automatique depuis les shulker boxes avec filtrage par nom, sons personnalisables et messages configurables.",
+	"authors": [
+		"mal0andre"
+	],
+	"contact": {
+		"homepage": "https://golriver.fr",
+		"sources": "https://github.com/mal0andre/Chomagerie",
+		"issues": "https://github.com/mal0andre/Chomagerie/issues",
+		"discord": "https://discord.gg/jYrjqckBTP",
+		"license": "https://github.com/mal0andre/Chomagerie/blob/main/LICENSE.txt"
+	},
+	"contributors": [
+		"Contributeurs du serveur Chomagerie"
+	],
 	"license": "All-Rights-Reserved",
 	"icon": "assets/chomagerie/icon.png",
 	"environment": "*",
