@@ -1,5 +1,25 @@
 name: Build Chomagerie
-on: [ push, pull_request ]
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Platform to build for'
+        required: true
+        default: 'fabric'
+        type: choice
+        options:
+          - fabric
+      releaseType:
+        description: 'Release type'
+        required: true
+        default: 'stable'
+        type: choice
+        options:
+          - stable
+          - beta
+          - alpha
 jobs:
   build:
     runs-on: ubuntu-latest
