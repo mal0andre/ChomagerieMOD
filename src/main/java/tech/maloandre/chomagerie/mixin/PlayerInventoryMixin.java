@@ -74,7 +74,7 @@ public abstract class PlayerInventoryMixin {
             return; // Ne rien faire d'autre ce tick
         }
 
-        // Cas 1: On surveillait un item et le slot est maintenant complètement vide
+        // Cas 1 : On surveillait un item et le slot est maintenant complètement vide
         if (chomagerie$lastSelectedItem != null && currentStack.isEmpty()) {
             // Vérifier que c'était une consommation naturelle (count passé de 1 à 0)
             // Si le count était > 1, le joueur a probablement déplacé/jeté le stack manuellement
@@ -93,7 +93,7 @@ public abstract class PlayerInventoryMixin {
             chomagerie$lastSelectedCount = 0;
             chomagerie$lastUsedStatValue = 0;
         }
-        // Cas 2: On a un item dans le slot sélectionné
+        // Cas 2 : On a un item dans le slot sélectionné
         else if (!currentStack.isEmpty()) {
             Item currentItem = currentStack.getItem();
             int currentCount = currentStack.getCount();
@@ -118,7 +118,7 @@ public abstract class PlayerInventoryMixin {
                 chomagerie$lastUsedStatValue = chomagerie$getUsedStat(currentItem);
             }
         }
-        // Cas 3: Le slot est vide et on ne surveillait rien
+        // Cas 3 : Le slot est vide et on ne surveillait rien
         else {
             chomagerie$lastSelectedItem = null;
             chomagerie$lastSelectedCount = 0;
