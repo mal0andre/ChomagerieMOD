@@ -8,7 +8,9 @@ import net.fabricmc.loader.api.FabricLoader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -161,6 +163,47 @@ public class ServerConfig {
 	}
 
 	/**
+	 * Définit le message personnalisé de refill pour un joueur
+	 */
+	public void setRefillMessage(UUID playerUuid, String message) {
+		PlayerConfig config = getPlayerConfig(playerUuid);
+		config.refillMessage = message;
+		setPlayerConfig(playerUuid, config);
+	}
+
+	/**
+	 * Récupère le message personnalisé de refill pour un joueur
+	 */
+	public String getRefillMessage(UUID playerUuid) {
+		return getPlayerConfig(playerUuid).refillMessage;
+	}
+
+	/**
+	 * Définit la liste des items autorisés pour un joueur
+	 */
+	public void setAllowedItems(UUID playerUuid, List<String> items) {
+		PlayerConfig config = getPlayerConfig(playerUuid);
+		config.allowedItems = items;
+		setPlayerConfig(playerUuid, config);
+	}
+
+	/**
+	 * Récupère la liste des items autorisés pour un joueur
+	 */
+	public List<String> getAllowedItems(UUID playerUuid) {
+		return getPlayerConfig(playerUuid).allowedItems;
+	}
+
+	/**
+	 * Vérifie si un item est autorisé pour le refill pour un joueur donné
+	 * Si la liste est vide, tous les items sont autorisés
+	 */
+	public boolean isItemAllowed(UUID playerUuid, String itemId) {
+		PlayerConfig config = getPlayerConfig(playerUuid);
+		return config.allowedItems.isEmpty() || config.allowedItems.contains(itemId);
+	}
+
+	/**
 	 * Configuration individuelle d'un joueur
 	 */
 	public static class PlayerConfig {
@@ -169,6 +212,8 @@ public class ServerConfig {
 		public boolean showRefillMessages = true;
 		public boolean filterByName = false;
 		public String shulkerNameFilter = "restock same";
+		public String refillMessage = "§a[Chomagerie] Rechargement: %s";
+		public List<String> allowedItems = new ArrayList<>(); // Liste vide = tous les items autorisés
 
 		public PlayerConfig() {
 		}

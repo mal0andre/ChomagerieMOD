@@ -9,6 +9,9 @@ import net.minecraft.util.Identifier;
 import tech.maloandre.chomagerie.Chomagerie;
 import tech.maloandre.chomagerie.config.ServerConfig;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Paquet pour synchroniser la configuration du client vers le serveur
  */
@@ -16,7 +19,9 @@ public record ConfigSyncPayload(
 		boolean shulkerRefillEnabled,
 		boolean showRefillMessages,
 		boolean filterByName,
-		String shulkerNameFilter
+		String shulkerNameFilter,
+		String refillMessage,
+		List<String> allowedItems
 ) implements CustomPayload {
 
 	public static final CustomPayload.Id<ConfigSyncPayload> ID =
@@ -28,13 +33,32 @@ public record ConfigSyncPayload(
 				buf.writeBoolean(value.showRefillMessages);
 				buf.writeBoolean(value.filterByName);
 				buf.writeString(value.shulkerNameFilter);
+				buf.writeString(value.refillMessage);
+				buf.writeInt(value.allowedItems.size());
+				for (String item : value.allowedItems) {
+					buf.writeString(item);
+				}
 			},
-			(buf) -> new ConfigSyncPayload(
-					buf.readBoolean(),
-					buf.readBoolean(),
-					buf.readBoolean(),
-					buf.readString()
-			)
+			(buf) -> {
+				boolean shulkerRefillEnabled = buf.readBoolean();
+				boolean showRefillMessages = buf.readBoolean();
+				boolean filterByName = buf.readBoolean();
+				String shulkerNameFilter = buf.readString();
+				String refillMessage = buf.readString();
+				int allowedItemsSize = buf.readInt();
+				List<String> allowedItems = new ArrayList<>();
+				for (int i = 0; i < allowedItemsSize; i++) {
+					allowedItems.add(buf.readString());
+				}
+				return new ConfigSyncPayload(
+						shulkerRefillEnabled,
+						showRefillMessages,
+						filterByName,
+						shulkerNameFilter,
+						refillMessage,
+						allowedItems
+				);
+			}
 	);
 
 	/**
@@ -55,9 +79,12 @@ public record ConfigSyncPayload(
 			config.setShowRefillMessages(player.getUuid(), payload.showRefillMessages);
 			config.setFilterByName(player.getUuid(), payload.filterByName);
 			config.setShulkerNameFilter(player.getUuid(), payload.shulkerNameFilter);
+			config.setRefillMessage(player.getUuid(), payload.refillMessage);
+			config.setAllowedItems(player.getUuid(), payload.allowedItems);
 
-			Chomagerie.LOGGER.info("Configuration synchronisée pour le joueur {} - ShulkerRefill: {}, Filtre: {} (Mod installé)",
-					player.getName().getString(), payload.shulkerRefillEnabled, payload.filterByName ? payload.shulkerNameFilter : "désactivé");
+			Chomagerie.LOGGER.info("Configuration synchronisée pour le joueur {} - ShulkerRefill: {}, Filtre: {}, Items: {} (Mod installé)",
+					player.getName().getString(), payload.shulkerRefillEnabled, payload.filterByName ? payload.shulkerNameFilter : "désactivé",
+					payload.allowedItems.isEmpty() ? "tous" : payload.allowedItems.size() + " autorisés");
 		});
 	}
 

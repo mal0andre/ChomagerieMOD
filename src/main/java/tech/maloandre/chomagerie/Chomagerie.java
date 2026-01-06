@@ -4,7 +4,9 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.registry.Registries;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tech.maloandre.chomagerie.config.ServerConfig;
@@ -47,8 +49,18 @@ public class Chomagerie implements ModInitializer {
 				boolean isEnabled = ServerConfig.getInstance().isShulkerRefillEnabled(player.getUuid());
 
 				if (isEnabled) {
-					// Récupérer les paramètres de filtrage du joueur
+					// Récupérer l'ID de l'item pour vérifier s'il est autorisé
+					Identifier itemId = Registries.ITEM.getId(item);
+					String itemIdString = itemId.toString();
+
+					// Vérifier si l'item est autorisé pour ce joueur
 					ServerConfig config = ServerConfig.getInstance();
+					if (!config.isItemAllowed(player.getUuid(), itemIdString)) {
+						LOGGER.debug("Refill ignoré pour {} - Item {} désactivé", player.getName().getString(), itemIdString);
+						return;
+					}
+
+					// Récupérer les paramètres de filtrage du joueur
 					boolean filterByName = config.isFilterByNameEnabled(player.getUuid());
 					String nameFilter = config.getShulkerNameFilter(player.getUuid());
 
