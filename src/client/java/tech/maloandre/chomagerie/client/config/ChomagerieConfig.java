@@ -9,6 +9,8 @@ import tech.maloandre.chomagerie.config.ModState;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ChomagerieConfig {
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
@@ -103,6 +105,8 @@ public class ChomagerieConfig {
 		public boolean playSounds = true;
 		public boolean filterByName = false;
 		public String shulkerNameFilter = "restock same";
+		public String refillMessage = "§a[Chomagerie] Rechargement: %s";
+		public List<String> allowedItems = new ArrayList<>(); // Liste vide = tous les items autorisés
 
 		public boolean isEnabled() {
 			return enabled;
@@ -142,6 +146,27 @@ public class ChomagerieConfig {
 
 		public void setShulkerNameFilter(String name) {
 			this.shulkerNameFilter = name;
+		}
+
+		public String getRefillMessage() {
+			return refillMessage;
+		}
+
+		public void setRefillMessage(String message) {
+			this.refillMessage = message;
+		}
+
+		public List<String> getAllowedItems() {
+			return allowedItems;
+		}
+
+		public void setAllowedItems(List<String> items) {
+			this.allowedItems = items;
+		}
+
+		public boolean isItemAllowed(String itemId) {
+			// Si la liste est vide, tous les items sont autorisés
+			return allowedItems.isEmpty() || allowedItems.contains(itemId);
 		}
 	}
 }

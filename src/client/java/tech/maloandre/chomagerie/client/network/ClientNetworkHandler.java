@@ -27,7 +27,9 @@ public class ClientNetworkHandler {
 				config.shulkerRefill.isEnabled(),
 				config.shulkerRefill.shouldShowRefillMessages(),
 				config.shulkerRefill.isFilterByNameEnabled(),
-				config.shulkerRefill.getShulkerNameFilter()
+				config.shulkerRefill.getShulkerNameFilter(),
+				config.shulkerRefill.getRefillMessage(),
+				config.shulkerRefill.getAllowedItems()
 		);
 
 		ClientPlayNetworking.send(payload);
@@ -45,8 +47,11 @@ public class ClientNetworkHandler {
 
 				// Afficher le message si activé
 				if (config.shulkerRefill.shouldShowRefillMessages() && client.player != null) {
+					String message = config.shulkerRefill.getRefillMessage();
+					// Remplacer %s par le nom de l'item
+					message = message.replace("%s", payload.itemName());
 					client.player.sendMessage(
-							Text.literal("§7[§6Refill§7] §a" + payload.itemName() + " rechargé depuis une shulker box"),
+							Text.literal(message),
 							true // Afficher dans l'actionbar
 					);
 				}
