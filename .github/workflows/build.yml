@@ -71,6 +71,7 @@ jobs:
           fi
 
       - name: Create GitHub Release
+        if: "!contains(github.event.head_commit.message, 'unrelease')"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
