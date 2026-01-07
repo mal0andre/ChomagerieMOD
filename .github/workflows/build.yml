@@ -68,9 +68,11 @@ jobs:
 
             -   name: Set Release Name
                 run: |
-                    if [ "${{ inputs.platform }}" == "fabric" ]; then
-                      echo "RELEASE_NAME=Chomagerie $MOD_VERSION for Minecraft $MINECRAFT_VERSION Fabric" >> $GITHUB_ENV
+                    RELEASE_NAME="Chomagerie ${{ env.MOD_VERSION }} for Minecraft ${{ env.MINECRAFT_VERSION }}"
+                    if [ "${{ inputs.releaseType }}" != "" ]; then
+                      RELEASE_NAME="$RELEASE_NAME (${{ inputs.releaseType }})"
                     fi
+                    echo "RELEASE_NAME=$RELEASE_NAME" >> $GITHUB_ENV
 
             -   name: Create GitHub Release
                 env:
@@ -90,7 +92,7 @@ jobs:
                     gh release create mc${{ env.MINECRAFT_VERSION }}-${{ env.MOD_VERSION }} \
                       --title="${{ env.RELEASE_NAME }}" \
                       --notes-file=CHANGELOG.md \
-                      --target=${{ github.ref_name }} \
+                      --target=${{ github.sha }} \
                       --draft=false \
                       --prerelease=$IS_PRERELEASE \
                       build/libs/*[!sources].jar
