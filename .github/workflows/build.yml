@@ -96,15 +96,16 @@ jobs:
                       build/libs/*[!sources].jar
 
             -   name: Upload to Modrinth
+                if: github.ref == 'refs/heads/master' && github.event_name == 'push'
                 uses: cloudnode-pro/modrinth-publish@v2
                 with:
                     token: ${{ secrets.MODRINTH_TOKEN }}
                     project: ${{ secrets.MODRINTH_PROJECT_ID }}
-                    name: Chomagerie ${{ env.MOD_VERSION }} for Minecraft ${{ env.MINECRAFT_VERSION }}
                     version: mc${{ env.MINECRAFT_VERSION }}-${{ env.MOD_VERSION }}
-                    changelog: ${{ github.event.release.body }}
+                    name: Chomagerie ${{ env.MOD_VERSION }} for Minecraft ${{ env.MINECRAFT_VERSION }}
+                    changelog: ${{ github.event.head_commit.message }}
                     loaders: |-
                         fabric
                     game-versions: |-
-                        1.21.10
-                    files: build/libs/chomagerie-${{ env.MOD_VERSION }}.jar
+                        ${{ env.MINECRAFT_VERSION }}
+                    files: build/libs/chomagerie-*.jar
