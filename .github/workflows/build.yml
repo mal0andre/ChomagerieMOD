@@ -1,6 +1,8 @@
 name: Build Chomagerie
 on:
     push:
+        branches:
+            - master
     pull_request:
     workflow_dispatch:
         inputs:
@@ -92,3 +94,29 @@ jobs:
                       --draft=false \
                       --prerelease=$IS_PRERELEASE \
                       build/libs/*[!sources].jar
+
+            -   name: Publish to Modrinth
+                if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+                env:
+                    MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+                run: |
+                    # Get the mod jar file (exclude sources)
+                    MOD_JAR=$(ls build/libs/*[!sources].jar | head -1)
+                    
+                    # Determine release type
+                    RELEASE_TYPE="release"
+                    if [[ "${{ env.MOD_VERSION }}" == *"SNAPSHOT"* ]] || [[ "${{ env.MOD_VERSION }}" == *"alpha"* ]] || [[ "${{ env.MOD_VERSION }}" == *"beta"* ]]; then
+                      if [[ "${{ env.MOD_VERSION }}" == *"alpha"* ]]; then
+                        RELEASE_TYPE="alpha"
+                      else
+                        RELEASE_TYPE="beta"
+                      fi
+                    fi
+                    
+                    # Publish to Modrinth using curl
+                    curl -X POST \
+                      -H "Authorization: $MODRINTH_TOKEN" \
+                      -H "Content-Type: multipart/form-data" \
+                      -F "data={\"version_number\":\"${{ env.MOD_VERSION }}\",\"name\":\"Chomagerie ${{ env.MOD_VERSION }} for Minecraft ${{ env.MINECRAFT_VERSION }}\",\"changelog\":\"See GitHub release\",\"dependencies\":[],\"release_channel\":\"$RELEASE_TYPE\",\"loaders\":[\"fabric\"],\"game_versions\":[\"${{ env.MINECRAFT_VERSION }}\"],\"featured\":true}" \
+                      -F "primary_file=@$MOD_JAR" \
+                      "https://api.modrinth.com/v2/project/a6xYNYzI/version"
