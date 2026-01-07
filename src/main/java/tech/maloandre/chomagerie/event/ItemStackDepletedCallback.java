@@ -8,26 +8,26 @@ import net.minecraft.item.ItemStack;
 
 public class ItemStackDepletedCallback {
 
-	public static final Event<ItemStackDepletedCallback.Depleted> EVENT = EventFactory.createArrayBacked(
-			ItemStackDepletedCallback.Depleted.class,
-			(listeners) -> (player, slot, item, previousStack) -> {
-				for (Depleted listener : listeners) {
-					listener.onItemStackDepleted(player, slot, item, previousStack);
-				}
-			}
-	);
+    public static final Event<ItemStackDepletedCallback.Depleted> EVENT = EventFactory.createArrayBacked(
+            ItemStackDepletedCallback.Depleted.class,
+            (listeners) -> (player, slot, item, previousStack) -> {
+                for (Depleted listener : listeners) {
+                    listener.onItemStackDepleted(player, slot, item, previousStack);
+                }
+            }
+    );
 
-	@FunctionalInterface
-	public interface Depleted {
-		/**
-		 * Appelé quand un stack d'items se vide dans l'inventaire du joueur
-		 *
-		 * @param player        Le joueur dont l'inventaire a changé
-		 * @param slot          Le slot qui s'est vidé
-		 * @param item          L'item qui était dans le slot
-		 * @param previousStack Le stack précédent (avant qu'il se vide)
-		 */
-		void onItemStackDepleted(PlayerEntity player, int slot, Item item, ItemStack previousStack);
-	}
+    @FunctionalInterface
+    public interface Depleted {
+        /**
+         * Appelé quand un stack d'items se vide dans l'inventaire du joueur
+         *
+         * @param player        Le joueur dont l'inventaire a changé
+         * @param slot          Le slot qui s'est vidé
+         * @param item          L'item qui était dans le slot
+         * @param previousStack Le stack précédent (avant qu'il se vide)
+         */
+        void onItemStackDepleted(PlayerEntity player, int slot, Item item, ItemStack previousStack);
+    }
 }
 

@@ -12,34 +12,34 @@ import tech.maloandre.chomagerie.config.ModState;
 
 public class ChomagerieClient implements ClientModInitializer {
 
-	public static final Logger LOGGER = LoggerFactory.getLogger("chomagerie-client");
+    public static final Logger LOGGER = LoggerFactory.getLogger("chomagerie-client");
 
-	@Override
-	public void onInitializeClient() {
-		// Load configuration
-		ChomagerieConfig config = ChomagerieConfig.getInstance();
+    @Override
+    public void onInitializeClient() {
+        // Load configuration
+        ChomagerieConfig config = ChomagerieConfig.getInstance();
 
-		// Update global state with ShulkerRefill config
-		ModState.setClientEnabled(config.shulkerRefill.isEnabled());
+        // Update global state with ShulkerRefill config
+        ModState.setClientEnabled(config.shulkerRefill.isEnabled());
 
-		if (config.shulkerRefill.isEnabled()) {
-			LOGGER.info("Chomagerie - ShulkerRefill is enabled on client");
-		} else {
-			LOGGER.info("Chomagerie - ShulkerRefill is disabled on client");
-		}
+        if (config.shulkerRefill.isEnabled()) {
+            LOGGER.info("Chomagerie - ShulkerRefill is enabled on client");
+        } else {
+            LOGGER.info("Chomagerie - ShulkerRefill is disabled on client");
+        }
 
-		// Initialize network handler
-		ClientNetworkHandler.init();
+        // Initialize network handler
+        ClientNetworkHandler.init();
 
-		// Synchronize config to server on connection
-		ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
-			ClientNetworkHandler.sendConfigToServer();
-			LOGGER.info("Configuration sent to server");
-		});
+        // Synchronize config to server on connection
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
+            ClientNetworkHandler.sendConfigToServer();
+            LOGGER.info("Configuration sent to server");
+        });
 
-		// Register client commands
-		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
-			ChomagerieCommand.register(dispatcher);
-		});
-	}
+        // Register client commands
+        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
+            ChomagerieCommand.register(dispatcher);
+        });
+    }
 }

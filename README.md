@@ -14,11 +14,13 @@
 
 ## 🚀 What is Chomagerie?
 
-**Chomagerie** is a Fabric mod that automatically refills consumed item stacks using shulker boxes stored in your **inventory** or **ender chest**.
+**Chomagerie** is a Fabric mod that automatically refills consumed item stacks using shulker boxes stored in your *
+*inventory** or **ender chest**.
 
 When a stack reaches **zero through normal gameplay**, it is instantly refilled — no GUI, no clicks, no interruptions.
 
-The project also includes a **datapack providing custom crafting recipes**, designed to integrate cleanly with vanilla gameplay.
+The project also includes a **datapack providing custom crafting recipes**, designed to integrate cleanly with vanilla
+gameplay.
 
 ---
 

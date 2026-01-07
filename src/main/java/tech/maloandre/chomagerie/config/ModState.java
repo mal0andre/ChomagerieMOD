@@ -5,14 +5,14 @@ package tech.maloandre.chomagerie.config;
  * Permet au serveur de savoir si le client a désactivé le mod
  */
 public class ModState {
-	private static boolean clientEnabled = true;
+    private static boolean clientEnabled = true;
 
-	public static boolean isClientEnabled() {
-		return clientEnabled;
-	}
+    public static boolean isClientEnabled() {
+        return clientEnabled;
+    }
 
-	public static void setClientEnabled(boolean enabled) {
-		clientEnabled = enabled;
-	}
+    public static void setClientEnabled(boolean enabled) {
+        clientEnabled = enabled;
+    }
 }
 

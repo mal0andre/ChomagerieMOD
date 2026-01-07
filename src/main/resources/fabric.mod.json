@@ -1,49 +1,49 @@
 {
-	"schemaVersion": 1,
-	"id": "chomagerie",
-	"version": "${version}",
-	"name": "Chomagerie",
-	"description": "Client mod for the Chomagerie server.\nIncludes ShulkerRefill - an automatic refill system from shulker boxes with name filtering, customizable sounds and configurable messages.",
-	"authors": [
-		"mal0andre"
-	],
-	"contact": {
-		"homepage": "https://golriver.fr",
-		"sources": "https://github.com/mal0andre/Chomagerie",
-		"issues": "https://github.com/mal0andre/Chomagerie/issues",
-		"discord": "https://discord.gg/jYrjqckBTP",
-		"license": "https://github.com/mal0andre/Chomagerie/blob/main/LICENSE.txt"
-	},
-	"contributors": [
-		"Chomagerie server contributors"
-	],
-	"license": "All-Rights-Reserved",
-	"icon": "assets/chomagerie/icon.png",
-	"environment": "*",
-	"entrypoints": {
-		"fabric-datagen": [
-			"tech.maloandre.chomagerie.client.ChomagerieDataGenerator"
-		],
-		"client": [
-			"tech.maloandre.chomagerie.client.ChomagerieClient"
-		],
-		"main": [
-			"tech.maloandre.chomagerie.Chomagerie"
-		],
-		"modmenu": [
-			"tech.maloandre.chomagerie.client.config.ModMenuIntegration"
-		]
-	},
-	"mixins": [
-		"chomagerie.mixins.json",
-		{
-			"config": "chomagerie.client.mixins.json",
-			"environment": "client"
-		}
-	],
-	"depends": {
-		"fabricloader": ">=${loader_version}",
-		"fabric-api": "*",
-		"minecraft": "${minecraft_version}"
-	}
+  "schemaVersion": 1,
+  "id": "chomagerie",
+  "version": "${version}",
+  "name": "Chomagerie",
+  "description": "Client mod for the Chomagerie server.\nIncludes ShulkerRefill - an automatic refill system from shulker boxes with name filtering, customizable sounds and configurable messages.",
+  "authors": [
+    "mal0andre"
+  ],
+  "contact": {
+    "homepage": "https://golriver.fr",
+    "sources": "https://github.com/mal0andre/Chomagerie",
+    "issues": "https://github.com/mal0andre/Chomagerie/issues",
+    "discord": "https://discord.gg/jYrjqckBTP",
+    "license": "https://github.com/mal0andre/Chomagerie/blob/main/LICENSE.txt"
+  },
+  "contributors": [
+    "Chomagerie server contributors"
+  ],
+  "license": "All-Rights-Reserved",
+  "icon": "assets/chomagerie/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "fabric-datagen": [
+      "tech.maloandre.chomagerie.client.ChomagerieDataGenerator"
+    ],
+    "client": [
+      "tech.maloandre.chomagerie.client.ChomagerieClient"
+    ],
+    "main": [
+      "tech.maloandre.chomagerie.Chomagerie"
+    ],
+    "modmenu": [
+      "tech.maloandre.chomagerie.client.config.ModMenuIntegration"
+    ]
+  },
+  "mixins": [
+    "chomagerie.mixins.json",
+    {
+      "config": "chomagerie.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version}"
+  }
 }
