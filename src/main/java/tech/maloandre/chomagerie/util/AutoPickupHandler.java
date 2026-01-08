@@ -24,6 +24,7 @@ public class AutoPickupHandler {
 
     /**
      * Tries to store the picked up item in an appropriate shulker box
+     * Only stores items that cannot be stacked in the player's existing inventory
      *
      * @param player       The player who picked up the item
      * @param pickedStack  The item stack that was picked up (used to identify the item type)
@@ -43,6 +44,7 @@ public class AutoPickupHandler {
 
         Inventory inventory = player.getInventory();
         Item itemToStore = pickedStack.getItem();
+        int maxStackSize = itemToStore.getMaxCount();
 
         Chomagerie.LOGGER.info("AutoPickup triggered for {} (filter: {}, name: {})",
             itemToStore.getName().getString(), filterByName, nameFilter);
@@ -78,13 +80,31 @@ public class AutoPickupHandler {
             return new PickupResult(false, "", 0); // No matching shulker found
         }
 
-        // Now find all items of this type in the player's inventory (excluding shulkers)
+        // Find all non-full stacks of this item in the player's inventory (excluding shulkers)
+        // to determine what can still be stacked
+        int totalCanStack = 0;
+        List<Integer> nonFullSlots = new ArrayList<>();
+
+        for (int i = 0; i < inventory.size(); i++) {
+            ItemStack stack = inventory.getStack(i);
+            if (!stack.isEmpty() && stack.getItem() == itemToStore && !isShulkerBox(stack.getItem())) {
+                if (stack.getCount() < maxStackSize) {
+                    int canAdd = maxStackSize - stack.getCount();
+                    totalCanStack += canAdd;
+                    nonFullSlots.add(i);
+                }
+            }
+        }
+
+        Chomagerie.LOGGER.info("Can still stack {} items in player inventory", totalCanStack);
+
+        // Now transfer only items that are in FULL stacks or exceed stacking capacity
         int storedTotal = 0;
 
         for (int shulkerSlot : shulkerSlots) {
             ItemStack shulkerStack = inventory.getStack(shulkerSlot);
 
-            // Transfer items from all non-shulker slots
+            // Transfer only FULL stacks or surplus items
             for (int i = 0; i < inventory.size(); i++) {
                 ItemStack playerStack = inventory.getStack(i);
 
@@ -92,18 +112,21 @@ public class AutoPickupHandler {
                     playerStack.getItem() == itemToStore &&
                     !isShulkerBox(playerStack.getItem())) {
 
-                    int stored = transferItemToShulker(shulkerStack, playerStack, inventory);
-                    storedTotal += stored;
+                    // Only transfer if this is a FULL stack (no room to stack more)
+                    if (playerStack.getCount() >= maxStackSize) {
+                        int stored = transferItemToShulker(shulkerStack, playerStack, inventory);
+                        storedTotal += stored;
 
-                    if (playerStack.isEmpty()) {
-                        inventory.setStack(i, ItemStack.EMPTY);
+                        if (playerStack.isEmpty()) {
+                            inventory.setStack(i, ItemStack.EMPTY);
+                        }
                     }
                 }
             }
 
             // If we've stored items, break (only use first matching shulker)
             if (storedTotal > 0) {
-                Chomagerie.LOGGER.info("Stored {} items in shulker at slot {}", storedTotal, shulkerSlot);
+                Chomagerie.LOGGER.info("Stored {} surplus items in shulker at slot {}", storedTotal, shulkerSlot);
                 break;
             }
         }
