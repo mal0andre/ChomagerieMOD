@@ -19,6 +19,12 @@ public class ChomagerieConfig {
     // ShulkerRefill configuration
     public ShulkerRefillConfig shulkerRefill = new ShulkerRefillConfig();
 
+    // UI configuration
+    public UIConfig ui = new UIConfig();
+
+    // Notifications configuration
+    public NotificationsConfig notifications = new NotificationsConfig();
+
     // Future configurations (examples)
     // public AutoCraftConfig autoCraft = new AutoCraftConfig();
     // public StorageManagerConfig storageManager = new StorageManagerConfig();
@@ -42,6 +48,12 @@ public class ChomagerieConfig {
                     // Assurer que les sous-configs sont initialisées
                     if (config.shulkerRefill == null) {
                         config.shulkerRefill = new ShulkerRefillConfig();
+                    }
+                    if (config.ui == null) {
+                        config.ui = new UIConfig();
+                    }
+                    if (config.notifications == null) {
+                        config.notifications = new NotificationsConfig();
                     }
                     // Synchroniser ModState avec la configuration chargée
                     ModState.setClientEnabled(config.shulkerRefill.enabled);
@@ -86,6 +98,12 @@ public class ChomagerieConfig {
                     // Mettre à jour l'instance actuelle avec les valeurs chargées
                     if (loaded.shulkerRefill != null) {
                         this.shulkerRefill = loaded.shulkerRefill;
+                    }
+                    if (loaded.ui != null) {
+                        this.ui = loaded.ui;
+                    }
+                    if (loaded.notifications != null) {
+                        this.notifications = loaded.notifications;
                     }
                     // Synchroniser ModState avec la configuration rechargée
                     ModState.setClientEnabled(this.shulkerRefill.isEnabled());
@@ -142,6 +160,95 @@ public class ChomagerieConfig {
 
         public void setShulkerNameFilter(String name) {
             this.shulkerNameFilter = name;
+        }
+    }
+
+    // Classe interne pour la configuration UI
+    public static class UIConfig {
+        public boolean showHUD = true;
+        public float hudOpacity = 1.0f;
+        public String hudPosition = "top-right";
+        public boolean compactMode = false;
+
+        public boolean isShowHUD() {
+            return showHUD;
+        }
+
+        public void setShowHUD(boolean show) {
+            this.showHUD = show;
+        }
+
+        public float getHudOpacity() {
+            return hudOpacity;
+        }
+
+        public void setHudOpacity(float opacity) {
+            this.hudOpacity = opacity;
+        }
+
+        public String getHudPosition() {
+            return hudPosition;
+        }
+
+        public void setHudPosition(String position) {
+            this.hudPosition = position;
+        }
+
+        public boolean isCompactMode() {
+            return compactMode;
+        }
+
+        public void setCompactMode(boolean compact) {
+            this.compactMode = compact;
+        }
+    }
+
+    // Classe interne pour la configuration Notifications
+    public static class NotificationsConfig {
+        public boolean enableNotifications = true;
+        public boolean notifyOnSuccess = true;
+        public boolean notifyOnError = true;
+        public boolean useActionBar = true;
+        public int notificationDuration = 3;
+
+        public boolean isNotificationsEnabled() {
+            return enableNotifications;
+        }
+
+        public void setNotificationsEnabled(boolean enabled) {
+            this.enableNotifications = enabled;
+        }
+
+        public boolean shouldNotifyOnSuccess() {
+            return notifyOnSuccess;
+        }
+
+        public void setNotifyOnSuccess(boolean notify) {
+            this.notifyOnSuccess = notify;
+        }
+
+        public boolean shouldNotifyOnError() {
+            return notifyOnError;
+        }
+
+        public void setNotifyOnError(boolean notify) {
+            this.notifyOnError = notify;
+        }
+
+        public boolean shouldUseActionBar() {
+            return useActionBar;
+        }
+
+        public void setUseActionBar(boolean use) {
+            this.useActionBar = use;
+        }
+
+        public int getNotificationDuration() {
+            return notificationDuration;
+        }
+
+        public void setNotificationDuration(int duration) {
+            this.notificationDuration = duration;
         }
     }
 }
