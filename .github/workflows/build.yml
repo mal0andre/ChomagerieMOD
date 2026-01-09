@@ -128,7 +128,7 @@ jobs:
 
       # Publication sur Modrinth (utilise cloudnode-pro/modrinth-publish@v2) — seulement si « Release » dans le changelog
       - name: Publish to Modrinth
-        if: github.event_name != 'pull_request' && !contains(github.event.head_commit.message, 'unrelease') && steps.check_changelog.outputs.publish == 'true'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && !contains(github.event.head_commit.message, 'unrelease') && steps.check_changelog.outputs.publish == 'true'
         uses: cloudnode-pro/modrinth-publish@v2
         with:
           token: ${{ secrets.MODRINTH_API_KEY }}
