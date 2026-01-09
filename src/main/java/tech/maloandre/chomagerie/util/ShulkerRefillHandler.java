@@ -22,13 +22,32 @@ public class ShulkerRefillHandler {
     }
 
     /**
+     * Compares two ItemStacks to check if they are the same type with the same data components
+     * This is important to differentiate items with different enchantment levels, firework levels, etc.
+     */
+    private static boolean isSameItemType(ItemStack stack1, ItemStack stack2) {
+        if (stack1.isEmpty() || stack2.isEmpty()) {
+            return false;
+        }
+
+        // First check: same item type
+        if (stack1.getItem() != stack2.getItem()) {
+            return false;
+        }
+
+        // Compare all data components to ensure we're matching exactly the same item
+        // This is crucial for items like fireworks with different flight duration levels
+        return stack1.getComponentChanges().equals(stack2.getComponentChanges());
+    }
+
+    /**
      * Checks if the player already has the item in their main inventory (excluding shulker boxes)
      *
      * @param inventory   The player's inventory
      * @param itemToCheck The item to search for
      * @return true if the item is present in the main inventory
      */
-    private static boolean hasItemInMainInventory(Inventory inventory, Item itemToCheck) {
+    private static boolean hasItemInMainInventory(Inventory inventory, ItemStack itemToCheck) {
         for (int i = 0; i < inventory.size(); i++) {
             ItemStack stack = inventory.getStack(i);
 
@@ -37,8 +56,8 @@ public class ShulkerRefillHandler {
                 continue;
             }
 
-            // Check if we found the item
-            if (!stack.isEmpty() && stack.getItem() == itemToCheck) {
+            // Check if we found the same type of item with the same components
+            if (isSameItemType(stack, itemToCheck)) {
                 return true;
             }
         }
@@ -51,13 +70,13 @@ public class ShulkerRefillHandler {
      * @param sourceInventory The inventory to search (can be the ender chest)
      * @param targetInventory The inventory where to put the extracted item (player inventory)
      * @param targetSlot      The slot where to put the extracted item
-     * @param itemToRefill    The item to search for
+     * @param itemToRefill    The item to search for (ItemStack with all data components)
      * @param filterByName    If true, filter by shulker box name
      * @param nameFilter      The name to search for (ignored if filterByName is false)
      * @return true if an item was found and extracted
      */
     private static boolean tryRefillFromInventoryShulkers(Inventory sourceInventory, Inventory targetInventory,
-                                                          int targetSlot, Item itemToRefill,
+                                                          int targetSlot, ItemStack itemToRefill,
                                                           boolean filterByName, String nameFilter) {
         // Search the inventory for shulker boxes
         for (int i = 0; i < sourceInventory.size(); i++) {
@@ -90,9 +109,9 @@ public class ShulkerRefillHandler {
                 for (int j = 0; j < contents.size(); j++) {
                     ItemStack shulkerItem = contents.get(j);
 
-                    if (!shulkerItem.isEmpty() && shulkerItem.getItem() == itemToRefill) {
+                    if (isSameItemType(shulkerItem, itemToRefill)) {
                         // Found the item! Transfer it to the empty slot
-                        int amountToTake = Math.min(shulkerItem.getCount(), itemToRefill.getMaxCount());
+                        int amountToTake = Math.min(shulkerItem.getCount(), itemToRefill.getItem().getMaxCount());
 
                         ItemStack refillStack = shulkerItem.copy();
                         refillStack.setCount(amountToTake);
@@ -134,12 +153,12 @@ public class ShulkerRefillHandler {
      *
      * @param player       The player
      * @param emptySlot    The slot that just became empty
-     * @param itemToRefill The item to refill
+     * @param itemToRefill The item to refill (ItemStack with all data components)
      * @param filterByName If true, filter by shulker box name
      * @param nameFilter   The name to search for (ignored if filterByName is false)
      * @return RefillResult containing success status and item name
      */
-    public static RefillResult tryRefillFromShulker(PlayerEntity player, int emptySlot, Item itemToRefill,
+    public static RefillResult tryRefillFromShulker(PlayerEntity player, int emptySlot, ItemStack itemToRefill,
                                                     boolean filterByName, String nameFilter) {
         if (player.getEntityWorld().isClient()) {
             return new RefillResult(false, ""); // Only works server-side

@@ -25,7 +25,7 @@ public class ItemStackDepletedCallback {
          * @param player        Le joueur dont l'inventaire a changé
          * @param slot          Le slot qui s'est vidé
          * @param item          L'item qui était dans le slot
-         * @param previousStack Le stack précédent (avant qu'il se vide)
+         * @param previousStack Le stack précédent (avant qu'il se vide) - contient les données complètes de l'item
          */
         void onItemStackDepleted(PlayerEntity player, int slot, Item item, ItemStack previousStack);
     }

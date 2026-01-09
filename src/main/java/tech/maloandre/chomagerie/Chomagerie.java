@@ -52,8 +52,9 @@ public class Chomagerie implements ModInitializer {
                     boolean filterByName = config.isFilterByNameEnabled(player.getUuid());
                     String nameFilter = config.getShulkerNameFilter(player.getUuid());
 
+                    // Use previousStack to get the complete item data (including enchantment levels for fireworks)
                     ShulkerRefillHandler.RefillResult result = ShulkerRefillHandler.tryRefillFromShulker(
-                            player, slot, item, filterByName, nameFilter
+                            player, slot, previousStack, filterByName, nameFilter
                     );
 
                     // If refill succeeded, send notification to client
