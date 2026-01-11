@@ -126,17 +126,49 @@ jobs:
             --prerelease=$IS_PRERELEASE \
             build/libs/*[!sources].jar
 
-      # Publication sur Modrinth (utilise cloudnode-pro/modrinth-publish@v2) — seulement si « Release » dans le changelog
+      # Publication sur Modrinth (API directe) — seulement si « Release » dans le changelog et sur master
       - name: Publish to Modrinth
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && !contains(github.event.head_commit.message, 'unrelease') && steps.check_changelog.outputs.publish == 'true'
-        uses: cloudnode-pro/modrinth-publish@v2
-        with:
-          token: ${{ secrets.MODRINTH_API_KEY }}
-          project: ${{ vars.MODRINTH_PROJECT_ID }}
-          name: ${{ env.RELEASE_NAME }}
-          version: ${{ env.MOD_VERSION }}
-          channel: ${{ env.MODRINTH_CHANNEL }}
-          loaders: |-
-            fabric
-          game-versions: ${{ env.MINECRAFT_VERSION }}
-          files: ${{ steps.prepare_modrinth_files.outputs.files }}
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && steps.check_changelog.outputs.publish == 'true'
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_API_KEY }}
+          MODRINTH_PROJECT_ID: ${{ vars.MODRINTH_PROJECT_ID }}
+        run: |
+          set -e
+          
+          # Lire le contenu du CHANGELOG
+          CHANGELOG_CONTENT=$(cat CHANGELOG.md)
+          
+          # Trouver le fichier JAR principal (exclut -sources et -dev)
+          JAR_FILE=$(ls -1 build/libs/*.jar | grep -v -E '(-sources\.jar$|-dev\.jar$)' | head -n 1)
+          
+          if [ -z "$JAR_FILE" ]; then
+            echo "Error: No JAR file found"
+            exit 1
+          fi
+          
+          echo "Publishing $JAR_FILE to Modrinth..."
+          
+          # Créer le JSON data pour Modrinth
+          cat > modrinth_data.json <<EOF
+          {
+            "name": "${{ env.RELEASE_NAME }}",
+            "version_number": "${{ env.MOD_VERSION }}",
+            "changelog": $(echo "$CHANGELOG_CONTENT" | jq -Rs .),
+            "dependencies": [],
+            "game_versions": ["${{ env.MINECRAFT_VERSION }}"],
+            "version_type": "${{ env.MODRINTH_CHANNEL }}",
+            "loaders": ["fabric"],
+            "featured": true,
+            "status": "listed",
+            "project_id": "${{ env.MODRINTH_PROJECT_ID }}",
+            "file_parts": ["file"]
+          }
+          EOF
+          
+          # Publier sur Modrinth
+          curl -X POST "https://api.modrinth.com/v2/version" \
+            -H "Authorization: ${{ env.MODRINTH_TOKEN }}" \
+            -F "data=<modrinth_data.json" \
+            -F "file=@$JAR_FILE"
+          
+          echo "Successfully published to Modrinth!"
