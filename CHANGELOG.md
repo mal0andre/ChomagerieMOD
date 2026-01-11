@@ -1,9 +1,13 @@
 ## Release
 
-### [1.4.2] - 2026-01-11
+### [1.4.3] - 2026-01-11
 
-#### Fixed
-- Fixed NullPointerException when comparing ItemStacks in shulker refill handler
-- Fixed NullPointerException when itemToRefill is null
-- Improved null safety by storing complete ItemStack copy instead of just the Item reference
-- Enhanced stability of automatic refill system from shulker boxes
+#### Changed
+- Updated Minecraft compatibility to support both 1.21.10 and 1.21.11
+- Updated ModMenu to version 16.0.0 (compatible with 1.21.1x)
+- Updated Cloth Config to version 21.11.153 (compatible with 1.21.1x)
+- Updated fabric.mod.json to accept Minecraft versions >=1.21.10 <1.21.12
+
+#### Technical
+- Fixed Mixin incompatibilities with newer Minecraft versions
+- Improved dependency version constraints for better compatibility
