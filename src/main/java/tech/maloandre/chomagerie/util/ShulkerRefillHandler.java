@@ -26,6 +26,11 @@ public class ShulkerRefillHandler {
      * This is important to differentiate items with different enchantment levels, firework levels, etc.
      */
     private static boolean isSameItemType(ItemStack stack1, ItemStack stack2) {
+        // Check for null stacks first
+        if (stack1 == null || stack2 == null) {
+            return false;
+        }
+
         if (stack1.isEmpty() || stack2.isEmpty()) {
             return false;
         }
@@ -160,6 +165,11 @@ public class ShulkerRefillHandler {
      */
     public static RefillResult tryRefillFromShulker(PlayerEntity player, int emptySlot, ItemStack itemToRefill,
                                                     boolean filterByName, String nameFilter) {
+        // Check if itemToRefill is null
+        if (itemToRefill == null) {
+            return new RefillResult(false, ""); // Nothing to refill
+        }
+
         if (player.getEntityWorld().isClient()) {
             return new RefillResult(false, ""); // Only works server-side
         }

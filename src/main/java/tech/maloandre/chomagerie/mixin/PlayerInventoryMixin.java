@@ -24,6 +24,8 @@ public abstract class PlayerInventoryMixin {
     @Unique
     private Item chomagerie$lastSelectedItem = null;
     @Unique
+    private ItemStack chomagerie$lastSelectedStack = null;
+    @Unique
     private int chomagerie$lastSelectedCount = 0;
     @Unique
     private int chomagerie$lastSelectedSlot = -1;
@@ -61,6 +63,7 @@ public abstract class PlayerInventoryMixin {
         if (chomagerie$lastSelectedSlot != currentSelectedSlot) {
             chomagerie$lastSelectedSlot = currentSelectedSlot;
             chomagerie$lastSelectedItem = currentStack.isEmpty() ? null : currentStack.getItem();
+            chomagerie$lastSelectedStack = currentStack.isEmpty() ? null : currentStack.copy();
             chomagerie$lastSelectedCount = currentStack.getCount();
             if (chomagerie$lastSelectedItem != null) {
                 chomagerie$lastUsedStatValue = chomagerie$getUsedStat(chomagerie$lastSelectedItem);
@@ -80,12 +83,13 @@ public abstract class PlayerInventoryMixin {
                 if (currentUsedStat > chomagerie$lastUsedStatValue) {
                     // Le stack s'est vidé naturellement (dernier bloc posé, dernier item consommé, etc.)
                     ItemStackDepletedCallback.EVENT.invoker().onItemStackDepleted(
-                            player, currentSelectedSlot, chomagerie$lastSelectedItem, null
+                            player, currentSelectedSlot, chomagerie$lastSelectedItem, chomagerie$lastSelectedStack
                     );
                 }
             }
             // Réinitialiser la surveillance
             chomagerie$lastSelectedItem = null;
+            chomagerie$lastSelectedStack = null;
             chomagerie$lastSelectedCount = 0;
             chomagerie$lastUsedStatValue = 0;
         }
@@ -100,10 +104,12 @@ public abstract class PlayerInventoryMixin {
                 // Si le count a augmenté ou changé drastiquement, c'est une manipulation manuelle
                 if (currentCount < chomagerie$lastSelectedCount) {
                     chomagerie$lastSelectedCount = currentCount;
+                    chomagerie$lastSelectedStack = currentStack.copy();
                     chomagerie$lastUsedStatValue = chomagerie$getUsedStat(currentItem);
                 } else if (currentCount > chomagerie$lastSelectedCount) {
                     // Le count a augmenté (ajout manuel, stack, etc.), on réinitialise
                     chomagerie$lastSelectedCount = currentCount;
+                    chomagerie$lastSelectedStack = currentStack.copy();
                     chomagerie$lastUsedStatValue = chomagerie$getUsedStat(currentItem);
                 }
             }
@@ -111,13 +117,14 @@ public abstract class PlayerInventoryMixin {
             else {
                 chomagerie$lastSelectedItem = currentItem;
                 chomagerie$lastSelectedCount = currentCount;
+                chomagerie$lastSelectedStack = currentStack.copy();
                 chomagerie$lastUsedStatValue = chomagerie$getUsedStat(currentItem);
             }
         }
         // Cas 3 : Le slot est vide et on ne surveillait rien
         else {
-            chomagerie$lastSelectedItem = null;
             chomagerie$lastSelectedCount = 0;
+            chomagerie$lastSelectedStack = null;
             chomagerie$lastUsedStatValue = 0;
         }
     }
