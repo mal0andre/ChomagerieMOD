@@ -1,9 +1,3 @@
-# Changelog
-
-All notable changes to this project will be documented in this file.
-
-## Release
-
 ### [1.4.2] - 2026-01-11
 
 #### Fixed
