@@ -135,7 +135,7 @@ jobs:
           project: ${{ vars.MODRINTH_PROJECT_ID }}
           name: ${{ env.RELEASE_NAME }}
           version: ${{ env.MOD_VERSION }}
-          changelog: ${{ github.event.release.body }}
+          changelog: CHANGELOG.md
           channel: ${{ env.MODRINTH_CHANNEL }}
           loaders: |-
             fabric
