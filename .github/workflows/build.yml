@@ -126,17 +126,17 @@ jobs:
             --prerelease=$IS_PRERELEASE \
             build/libs/*[!sources].jar
 
-      # Publication sur Modrinth (utilise cloudnode-pro/modrinth-publish@v2) — seulement si « Release » dans le changelog
+      # Publication sur Modrinth (utilise cloudnode-pro/modrinth-publish@v2) — seulement si « Release » dans le changelog et sur master/main
       - name: Publish to Modrinth
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && steps.check_changelog.outputs.publish == 'true'
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main') && steps.check_changelog.outputs.publish == 'true'
         uses: cloudnode-pro/modrinth-publish@v2
         with:
           token: ${{ secrets.MODRINTH_API_KEY }}
           project: ${{ vars.MODRINTH_PROJECT_ID }}
           name: ${{ env.RELEASE_NAME }}
           version: ${{ env.MOD_VERSION }}
+          changelog: ${{ github.event.release.body }}
           channel: ${{ env.MODRINTH_CHANNEL }}
-          changelog: CHANGELOG.md
           loaders: |-
             fabric
           game-versions: ${{ env.MINECRAFT_VERSION }}
