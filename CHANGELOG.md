@@ -1,6 +1,6 @@
 ## Release
 
-### [1.4.5] - 2026-01-21
+### [1.4.5] - 2026-01-22
 
 #### Added
 - **Offhand support**: The automatic refill system now works for both main hand and offhand
