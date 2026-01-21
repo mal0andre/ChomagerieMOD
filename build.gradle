@@ -19,6 +19,17 @@ loom {
             sourceSet sourceSets.client
         }
     }
+
+    runs {
+        client {
+            client()
+            runDir = "run/client"
+        }
+        server {
+            server()
+            runDir = "run/server"
+        }
+    }
 }
 
 fabricApi {

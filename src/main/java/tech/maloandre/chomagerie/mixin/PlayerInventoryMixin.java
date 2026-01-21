@@ -4,6 +4,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.stat.Stats;
 import org.spongepowered.asm.mixin.Final;
@@ -43,6 +44,23 @@ public abstract class PlayerInventoryMixin {
             return serverPlayer.getStatHandler().getStat(Stats.USED.getOrCreateStat(item));
         }
         return 0;
+    }
+
+    /**
+     * Vérifie si un item est un seau rempli (eau, lave, neige poudreuse, lait)
+     */
+    @Unique
+    private boolean chomagerie$isFilledBucket(Item item) {
+        return item == Items.WATER_BUCKET || 
+               item == Items.LAVA_BUCKET || 
+               item == Items.POWDER_SNOW_BUCKET ||
+               item == Items.MILK_BUCKET ||
+               item == Items.PUFFERFISH_BUCKET ||
+               item == Items.SALMON_BUCKET ||
+               item == Items.COD_BUCKET ||
+               item == Items.TROPICAL_FISH_BUCKET ||
+               item == Items.AXOLOTL_BUCKET ||
+               item == Items.TADPOLE_BUCKET;
     }
 
 
@@ -92,6 +110,24 @@ public abstract class PlayerInventoryMixin {
             chomagerie$lastSelectedStack = null;
             chomagerie$lastSelectedCount = 0;
             chomagerie$lastUsedStatValue = 0;
+        }
+        // Cas 1.5 : On surveillait un seau rempli et maintenant c'est un seau vide (item remplacé)
+        else if (chomagerie$lastSelectedItem != null && !currentStack.isEmpty() &&
+                 currentStack.getItem() == Items.BUCKET &&
+                 chomagerie$isFilledBucket(chomagerie$lastSelectedItem)) {
+            // Un seau rempli est devenu un seau vide, c'est une utilisation valide
+            int currentUsedStat = chomagerie$getUsedStat(chomagerie$lastSelectedItem);
+            if (currentUsedStat > chomagerie$lastUsedStatValue) {
+                // Le seau a été utilisé naturellement
+                ItemStackDepletedCallback.EVENT.invoker().onItemStackDepleted(
+                        player, currentSelectedSlot, chomagerie$lastSelectedItem, chomagerie$lastSelectedStack
+                );
+            }
+            // Réinitialiser la surveillance pour le nouveau seau vide
+            chomagerie$lastSelectedItem = Items.BUCKET;
+            chomagerie$lastSelectedStack = currentStack.copy();
+            chomagerie$lastSelectedCount = currentStack.getCount();
+            chomagerie$lastUsedStatValue = chomagerie$getUsedStat(Items.BUCKET);
         }
         // Cas 2 : On a un item dans le slot sélectionné
         else if (!currentStack.isEmpty()) {
