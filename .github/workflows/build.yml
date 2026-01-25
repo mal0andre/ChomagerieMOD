@@ -129,9 +129,11 @@ jobs:
       - name: CHANGELOG Content
         if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main') && steps.check_changelog.outputs.publish == 'true'
         run: |
-          echo "CHANGELOG_CONTENT<<EOF" >> $GITHUB_ENV
-          cat CHANGELOG.md >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          {
+            echo "CHANGELOG_CONTENT<<EOF"
+            cat CHANGELOG.md
+            echo "EOF"
+          } >> $GITHUB_ENV
 
       # Publication sur Modrinth (utilise cloudnode-pro/modrinth-publish@v2) — seulement si « Release » dans le changelog et sur master/main
       - name: Publish to Modrinth
