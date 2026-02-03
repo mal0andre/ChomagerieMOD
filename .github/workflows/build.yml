@@ -126,23 +126,28 @@ jobs:
             --prerelease=$IS_PRERELEASE \
             build/libs/*[!sources].jar
 
-      - name: CHANGELOG Content
+      # Lire le contenu du CHANGELOG de manière sécurisée
+      - name: Read CHANGELOG
         if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main') && steps.check_changelog.outputs.publish == 'true'
+        id: read_changelog
         run: |
-          echo "CHANGELOG_CONTENT<<CHANGELOG_DELIMITER_END" >> $GITHUB_ENV
-          cat CHANGELOG.md >> $GITHUB_ENV
-          echo "CHANGELOG_DELIMITER_END" >> $GITHUB_ENV
+          DELIMITER="CHANGELOG_$(date +%s)_END"
+          echo "content<<${DELIMITER}" >> $GITHUB_OUTPUT
+          cat CHANGELOG.md >> $GITHUB_OUTPUT
+          echo "${DELIMITER}" >> $GITHUB_OUTPUT
 
       # Publication sur Modrinth (utilise cloudnode-pro/modrinth-publish@v2) — seulement si « Release » dans le changelog et sur master/main
       - name: Publish to Modrinth
         if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main') && steps.check_changelog.outputs.publish == 'true'
         uses: cloudnode-pro/modrinth-publish@v2
+        env:
+          CHANGELOG_CONTENT: ${{ steps.read_changelog.outputs.content }}
         with:
           token: ${{ secrets.MODRINTH_API_KEY }}
           project: ${{ vars.MODRINTH_PROJECT_ID }}
           name: ${{ env.RELEASE_NAME }}
           version: ${{ env.MOD_VERSION }}
-          changelog: ${{ env.CHANGELOG_CONTENT }}
+          changelog: ${{ steps.read_changelog.outputs.content }}
           channel: ${{ env.MODRINTH_CHANNEL }}
           loaders: |-
             fabric
