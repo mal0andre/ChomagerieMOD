@@ -1,6 +1,6 @@
 ## Release
 
-### [1.4.6] - 2026-01-25
+### [1.4.7] - 2026-02-03
 
 #### Added
-- Add recipe for pale oak in the stonecutter
+- Add recipe for the copper and the waxed_copper – bars, chain, chest, golem_statue, lantern

@@ -1,0 +1,10 @@
+{
+  "type": "crafting_shapeless",
+  "ingredients": [
+    "minecraft:copper_lantern",
+    "minecraft:ice"
+  ],
+  "result": {
+    "id": "minecraft:exposed_copper_lantern"
+  }
+}

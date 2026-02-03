@@ -1,0 +1,10 @@
+{
+  "type": "crafting_shapeless",
+  "ingredients": [
+    "minecraft:waxed_weathered_copper_golem_statue",
+    "minecraft:ice"
+  ],
+  "result": {
+    "id": "minecraft:waxed_oxidized_copper_golem_statue"
+  }
+}

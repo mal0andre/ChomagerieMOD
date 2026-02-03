@@ -1,0 +1,10 @@
+{
+  "type": "crafting_shapeless",
+  "ingredients": [
+    "minecraft:copper_golem_statue",
+    "minecraft:ice"
+  ],
+  "result": {
+    "id": "minecraft:exposed_copper_golem_statue"
+  }
+}
