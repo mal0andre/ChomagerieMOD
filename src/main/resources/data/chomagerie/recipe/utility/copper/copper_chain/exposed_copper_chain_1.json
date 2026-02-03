@@ -1,0 +1,10 @@
+{
+  "type": "crafting_shapeless",
+  "ingredients": [
+    "minecraft:exposed_copper_chain",
+    "minecraft:ice"
+  ],
+  "result": {
+    "id": "minecraft:weathered_copper_chain"
+  }
+}
