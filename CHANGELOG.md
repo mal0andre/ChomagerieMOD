@@ -4,3 +4,4 @@
 
 #### Added
 - Add recipe for the copper and the waxed_copper – bars, chain, chest, golem_statue, lantern
+- GitHub build.yml fix and others

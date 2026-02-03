@@ -67,9 +67,9 @@ jobs:
           if [ -z "$FILES" ]; then
             FILES=$(ls -1 build/libs/*.jar 2>/dev/null || true)
           fi
-          echo "files<<EOF" >> $GITHUB_OUTPUT
+          echo "files<<FILES_DELIMITER_END" >> $GITHUB_OUTPUT
           echo "$FILES" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          echo "FILES_DELIMITER_END" >> $GITHUB_OUTPUT
 
       # Map releaseType -> channel Modrinth
       - name: Set Modrinth channel
@@ -129,9 +129,9 @@ jobs:
       - name: CHANGELOG Content
         if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main') && steps.check_changelog.outputs.publish == 'true'
         run: |
-          echo "CHANGELOG_CONTENT<<EOF" >> $GITHUB_ENV
+          echo "CHANGELOG_CONTENT<<CHANGELOG_DELIMITER_END" >> $GITHUB_ENV
           cat CHANGELOG.md >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          echo "CHANGELOG_DELIMITER_END" >> $GITHUB_ENV
 
       # Publication sur Modrinth (utilise cloudnode-pro/modrinth-publish@v2) — seulement si « Release » dans le changelog et sur master/main
       - name: Publish to Modrinth
