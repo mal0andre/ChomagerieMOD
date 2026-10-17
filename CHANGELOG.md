@@ -1,5 +1,12 @@
 ## Release
 
+### [1.5.4] - 2026-10-17
+
+#### Added
+- Add stonecutter recipes for poplar wood: one plank produces two slabs or one stair.
+- Add the improved poplar trapdoor recipe: six planks produce six trapdoors.
+- Match poplar crafting yields with the other wood types supported by Chomagerie.
+
 ### [1.5.3] - 2026-10-17
 
 #### Changed
