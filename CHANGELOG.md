@@ -1,5 +1,17 @@
 ## Release
 
+### [1.5.3] - 2026-10-17
+
+#### Changed
+- Update to Minecraft 26.3, Fabric Loader 0.19.5, and Fabric API 0.163.0.
+- Update MaLiLib to 0.30.2 and ModMenu to 21.0.0.
+- Update Loom and Gradle for Minecraft 26.3.
+
+#### Fixed
+- Adapt the configuration keybind to SDL keyboard input.
+- Adapt shulker contents access and farmland protection to the Minecraft 26.3 APIs.
+- Fix automatic GitHub and Modrinth publishing, release defaults, and artifact selection.
+
 ### [1.5.2] - 2026-08-19
 
 #### Added

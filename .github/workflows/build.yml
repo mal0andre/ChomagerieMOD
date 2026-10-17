@@ -1,25 +1,31 @@
 name: Build Chomagerie
+
 on:
   push:
   pull_request:
   workflow_dispatch:
     inputs:
       platform:
-        description: 'Platform to build for'
+        description: Platform to build for
         required: true
-        default: 'fabric'
+        default: fabric
         type: choice
         options:
           - fabric
       releaseType:
-        description: 'Release type'
+        description: Release type
         required: true
-        default: 'stable'
+        default: stable
         type: choice
         options:
           - stable
           - beta
           - alpha
+
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -33,10 +39,10 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: 25
+          java-version: '25'
 
-      -   name: Setup Gradle
-          uses: gradle/actions/setup-gradle@v4
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Validate Gradle Wrapper Integrity
         uses: gradle/actions/wrapper-validation@v4
@@ -45,108 +51,123 @@ jobs:
         run: chmod +x gradlew
 
       - name: Gradle Release Build
+        run: ./gradlew clean build --console=plain
+
+      - name: Prepare release
+        id: release
         env:
-          RELEASE_WORKFLOW: true
-          PLATFORM: ${{ inputs.platform }}
-        run: ./gradlew build
-
-      - name: Set environment variables for the script below
+          RELEASE_TYPE: ${{ inputs.releaseType || 'stable' }}
+          HEAD_MESSAGE: ${{ github.event.head_commit.message }}
+        shell: bash
         run: |
-          echo "MINECRAFT_VERSION=$(./gradlew -q printMinecraftVersion)" >> $GITHUB_ENV
-          echo "MOD_VERSION=$(./gradlew -q printModVersion)" >> $GITHUB_ENV
-
-      # Prépare la liste des fichiers JAR à envoyer à Modrinth (exclut les -sources et -dev)
-      - name: Prepare Modrinth files list
-        id: prepare_modrinth_files
-        run: |
-          set -e
-          FILES=$(ls -1 build/libs/*.jar 2>/dev/null | grep -v -E '(-sources\.jar$|-dev\.jar$)' || true)
-          if [ -z "$FILES" ]; then
-            FILES=$(ls -1 build/libs/*.jar 2>/dev/null || true)
+          set -euo pipefail
+          MC_VERSION=$(sed -n 's/^minecraft_version=//p' gradle.properties | tr -d '\r')
+          MOD_VERSION=$(sed -n 's/^mod_version=//p' gradle.properties | tr -d '\r')
+          ARCHIVE_NAME=$(sed -n 's/^archives_base_name=//p' gradle.properties | tr -d '\r')
+          test -n "$MC_VERSION"
+          test -n "$MOD_VERSION"
+          JAR="build/libs/${ARCHIVE_NAME}-${MOD_VERSION}.jar"
+          test -s "$JAR"
+          CHANNEL=release
+          case "$MOD_VERSION" in
+            *alpha*|*SNAPSHOT*) CHANNEL=alpha ;;
+            *beta*|*rc*|*pre*) CHANNEL=beta ;;
+          esac
+          case "$RELEASE_TYPE" in
+            alpha|beta) CHANNEL="$RELEASE_TYPE" ;;
+          esac
+          PUBLISH=false
+          if [[ "$GITHUB_EVENT_NAME" != pull_request && ( "$GITHUB_REF" == refs/heads/master || "$GITHUB_REF" == refs/heads/main ) ]] \
+            && [[ "$HEAD_MESSAGE" != *unrelease* ]] \
+            && grep -qiE '^\s*#+\s*\[?Release\]?([[:space:]]|$)' CHANGELOG.md; then
+            PUBLISH=true
           fi
-          echo "files<<FILES_DELIMITER_END" >> $GITHUB_OUTPUT
-          echo "$FILES" >> $GITHUB_OUTPUT
-          echo "FILES_DELIMITER_END" >> $GITHUB_OUTPUT
-
-      # Map releaseType -> channel Modrinth
-      - name: Set Modrinth channel
-        run: |
-          if [ "${{ inputs.releaseType }}" == "stable" ]; then
-            echo "MODRINTH_CHANNEL=release" >> $GITHUB_ENV
-          else
-            echo "MODRINTH_CHANNEL=${{ inputs.releaseType }}" >> $GITHUB_ENV
-          fi
+          {
+            echo "minecraft=$MC_VERSION"
+            echo "version=$MOD_VERSION"
+            echo "jar=$JAR"
+            echo "tag=mc${MC_VERSION}-${MOD_VERSION}"
+            echo "name=Chomagerie $MOD_VERSION for Minecraft $MC_VERSION Fabric"
+            echo "channel=$CHANNEL"
+            echo "publish=$PUBLISH"
+          } >> "$GITHUB_OUTPUT"
+          awk '/^### \[/ { if (seen++) exit } seen' CHANGELOG.md > build/release-notes.md
+          test -s build/release-notes.md
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Chomagerie-Mod
-          path: "build/libs/*.jar"
+          path: build/libs/*.jar
+          if-no-files-found: error
 
-      - name: Set Release Name
+      - name: Check publication configuration and existing version
+        if: steps.release.outputs.publish == 'true'
+        id: modrinth
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_API_KEY }}
+          MODRINTH_PROJECT: ${{ vars.MODRINTH_PROJECT_ID }}
+          MOD_VERSION: ${{ steps.release.outputs.version }}
+          MC_VERSION: ${{ steps.release.outputs.minecraft }}
         run: |
-          if [ "${{ inputs.platform }}" == "fabric" ]; then
-            echo "RELEASE_NAME=Chomagerie $MOD_VERSION for Minecraft $MINECRAFT_VERSION Fabric" >> $GITHUB_ENV
-          fi
+          set -euo pipefail
+          test -n "$MODRINTH_TOKEN" || { echo '::error::Missing MODRINTH_API_KEY secret'; exit 1; }
+          test -n "$MODRINTH_PROJECT" || { echo '::error::Missing MODRINTH_PROJECT_ID variable'; exit 1; }
+          curl --fail --silent --show-error --retry 3 \
+            "https://api.modrinth.com/v2/project/${MODRINTH_PROJECT}/version" > build/modrinth-versions.json
+          EXISTS=$(jq --arg version "$MOD_VERSION" --arg mc "$MC_VERSION" \
+            'any(.[]; .version_number == $version and (.game_versions | index($mc)) != null)' build/modrinth-versions.json)
+          echo "exists=$EXISTS" >> "$GITHUB_OUTPUT"
 
-      # Vérifie que le CHANGELOG contient un en-tête « Release »
-      - name: Check changelog for Release
-        id: check_changelog
+      - name: Create or update GitHub Release
+        if: steps.release.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          RELEASE_NAME: ${{ steps.release.outputs.name }}
+          RELEASE_CHANNEL: ${{ steps.release.outputs.channel }}
+          RELEASE_JAR: ${{ steps.release.outputs.jar }}
         run: |
-          if grep -qiE '^\s*#+\s*\[?Release\]?([[:space:]]|$)' CHANGELOG.md; then
-            echo "publish=true" >> $GITHUB_OUTPUT
+          set -euo pipefail
+          PRERELEASE=false
+          if [[ "$RELEASE_CHANNEL" != release ]]; then PRERELEASE=true; fi
+          if gh release view "$RELEASE_TAG" > /dev/null 2>&1; then
+            gh release edit "$RELEASE_TAG" --title "$RELEASE_NAME" \
+              --notes-file build/release-notes.md --prerelease="$PRERELEASE"
+            gh release upload "$RELEASE_TAG" "$RELEASE_JAR" --clobber
           else
-            echo "publish=false" >> $GITHUB_OUTPUT
+            gh release create "$RELEASE_TAG" --title "$RELEASE_NAME" \
+              --notes-file build/release-notes.md --target "$GITHUB_SHA" \
+              --prerelease="$PRERELEASE" "$RELEASE_JAR"
           fi
 
-      - name: Create GitHub Release
-        if: github.event_name != 'pull_request' && !contains(github.event.head_commit.message, 'unrelease')
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Read release notes
+        if: steps.release.outputs.publish == 'true' && steps.modrinth.outputs.exists != 'true'
+        id: notes
         run: |
-          gh release delete mc${{ env.MINECRAFT_VERSION }}-${{ env.MOD_VERSION }} --yes || true
-          
-          # Determine if this is a prerelease based on version string or input
-          IS_PRERELEASE=false
-          if [[ "${{ env.MOD_VERSION }}" == *"SNAPSHOT"* ]] || [[ "${{ env.MOD_VERSION }}" == *"alpha"* ]] || [[ "${{ env.MOD_VERSION }}" == *"beta"* ]]; then
-            IS_PRERELEASE=true
-          fi
-          if [ "${{ inputs.releaseType }}" == "alpha" ] || [ "${{ inputs.releaseType }}" == "beta" ]; then
-            IS_PRERELEASE=true
-          fi
-          
-          gh release create mc${{ env.MINECRAFT_VERSION }}-${{ env.MOD_VERSION }} \
-            --title="${{ env.RELEASE_NAME }}" \
-            --notes-file=CHANGELOG.md \
-            --target=${{ github.ref_name }} \
-            --draft=false \
-            --prerelease=$IS_PRERELEASE \
-            build/libs/*[!sources].jar
+          DELIMITER="CHANGELOG_$(cat /proc/sys/kernel/random/uuid)"
+          {
+            echo "content<<$DELIMITER"
+            cat build/release-notes.md
+            echo "$DELIMITER"
+          } >> "$GITHUB_OUTPUT"
 
-      # Lire le contenu du CHANGELOG de manière sécurisée
-      - name: Read CHANGELOG
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main') && steps.check_changelog.outputs.publish == 'true'
-        id: read_changelog
-        run: |
-          DELIMITER="CHANGELOG_$(date +%s)_END"
-          echo "content<<${DELIMITER}" >> $GITHUB_OUTPUT
-          cat CHANGELOG.md >> $GITHUB_OUTPUT
-          echo "${DELIMITER}" >> $GITHUB_OUTPUT
-
-      # Publication sur Modrinth (utilise cloudnode-pro/modrinth-publish@v2) — seulement si « Release » dans le changelog et sur master/main
       - name: Publish to Modrinth
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main') && steps.check_changelog.outputs.publish == 'true'
+        if: steps.release.outputs.publish == 'true' && steps.modrinth.outputs.exists != 'true'
         uses: cloudnode-pro/modrinth-publish@v2
-        env:
-          CHANGELOG_CONTENT: ${{ steps.read_changelog.outputs.content }}
         with:
           token: ${{ secrets.MODRINTH_API_KEY }}
           project: ${{ vars.MODRINTH_PROJECT_ID }}
-          name: ${{ env.RELEASE_NAME }}
-          version: ${{ env.MOD_VERSION }}
-          changelog: ${{ steps.read_changelog.outputs.content }}
-          channel: ${{ env.MODRINTH_CHANNEL }}
-          loaders: |-
-            fabric
-          game-versions: ${{ env.MINECRAFT_VERSION }}
-          files: ${{ steps.prepare_modrinth_files.outputs.files }}
+          name: ${{ steps.release.outputs.name }}
+          version: ${{ steps.release.outputs.version }}
+          changelog: ${{ steps.notes.outputs.content }}
+          channel: ${{ steps.release.outputs.channel }}
+          loaders: fabric
+          game-versions: ${{ steps.release.outputs.minecraft }}
+          files: ${{ steps.release.outputs.jar }}
+          dependencies: |-
+            [
+              {"project_id":"P7dR8mSH","dependency_type":"required"},
+              {"project_id":"GcWjdA9I","dependency_type":"required"},
+              {"project_id":"mOgUt4GM","dependency_type":"optional"}
+            ]

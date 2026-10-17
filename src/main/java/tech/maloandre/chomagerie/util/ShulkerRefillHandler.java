@@ -108,7 +108,7 @@ public class ShulkerRefillHandler {
 
 				// Convert the stream to a list
 				List<ItemStack> contents = new ArrayList<>();
-				container.allItemsCopyStream().forEach(contents::add);
+				container.itemCopies().forEach(contents::add);
 
 				if (contents.isEmpty()) {
 					continue;

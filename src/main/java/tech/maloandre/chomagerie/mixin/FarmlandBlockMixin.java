@@ -21,12 +21,12 @@ public abstract class FarmlandBlockMixin {
             method = "fallOn",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/world/level/block/FarmlandBlock;turnToDirt(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;)V"
+                    target = "Lnet/minecraft/world/level/block/FarmlandBlock;turnToBaseBlock(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;)V"
             )
     )
-    private void chomagerie$preventFarmlandTrampling(Entity entity, BlockState state, Level level, BlockPos pos) {
+    private void chomagerie$preventFarmlandTrampling(FarmlandBlock farmland, Entity entity, BlockState state, Level level, BlockPos pos) {
         if (chomagerie$canTrampleFarmland(entity, level)) {
-            FarmlandBlock.turnToDirt(entity, state, level, pos);
+            farmland.turnToBaseBlock(entity, state, level, pos);
         }
     }
 

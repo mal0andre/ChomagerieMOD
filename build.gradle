@@ -82,7 +82,7 @@ dependencies {
     compileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
 
     // MaLiLib - configuration GUI
-    implementation "maven.modrinth:malilib:0.29.3"
+    implementation "maven.modrinth:malilib:${project.malilib_version}"
 }
 
 processResources {

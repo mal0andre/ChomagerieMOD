@@ -11,7 +11,6 @@ import net.minecraft.client.Options;
 import net.minecraft.resources.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.lwjgl.glfw.GLFW;
 import tech.maloandre.chomagerie.Chomagerie;
 import tech.maloandre.chomagerie.client.command.ChomagerieCommand;
 import tech.maloandre.chomagerie.client.config.ChomagerieConfig;
@@ -66,8 +65,8 @@ public class ChomagerieClient implements ClientModInitializer {
     private static void registerKeyBindings() {
         openConfigKey = new KeyMapping(
                 "key.chomagerie.open_config",
-                InputConstants.Type.KEYSYM,
-                GLFW.GLFW_KEY_K,
+                InputConstants.Type.KEYBOARD,
+                InputConstants.KEY_K,
                 CHOMAGERIE_CATEGORY
         );
 
