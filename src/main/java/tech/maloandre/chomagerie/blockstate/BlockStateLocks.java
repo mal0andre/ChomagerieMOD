@@ -1,0 +1,64 @@
+package tech.maloandre.chomagerie.blockstate;
+
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import net.minecraft.core.BlockPos;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraft.world.level.saveddata.SavedDataType;
+
+import java.util.List;
+
+/** Dimension-owned saved data. No global world references, scans or per-interaction disk writes. */
+public final class BlockStateLocks extends SavedData {
+    private record Entry(long pos, BlockState state) {
+        static final Codec<Entry> CODEC = RecordCodecBuilder.create(i -> i.group(
+                Codec.LONG.fieldOf("pos").forGetter(Entry::pos),
+                BlockState.CODEC.fieldOf("state").forGetter(Entry::state)
+        ).apply(i, Entry::new));
+    }
+    private static final Codec<BlockStateLocks> CODEC = Entry.CODEC.listOf().xmap(BlockStateLocks::new, BlockStateLocks::entries);
+    public static final SavedDataType<BlockStateLocks> TYPE = new SavedDataType<>(
+            Identifier.fromNamespaceAndPath("chomagerie", "block_state_locks"), BlockStateLocks::new, CODEC, null);
+    private final Long2ObjectOpenHashMap<BlockState> locks = new Long2ObjectOpenHashMap<>();
+
+    public BlockStateLocks() { }
+    private BlockStateLocks(List<Entry> entries) { entries.forEach(e -> locks.put(e.pos, e.state)); }
+    private List<Entry> entries() {
+        return locks.long2ObjectEntrySet().stream().map(e -> new Entry(e.getLongKey(), e.getValue())).toList();
+    }
+    public static BlockStateLocks get(ServerLevel level) { return level.getDataStorage().computeIfAbsent(TYPE); }
+    public boolean contains(BlockPos pos) { return locks.containsKey(pos.asLong()); }
+    public void lock(BlockPos pos, BlockState state) { locks.put(pos.asLong(), state); setDirty(); }
+    public void remove(BlockPos pos) { if (locks.remove(pos.asLong()) != null) setDirty(); }
+    /** Full snapshot, including properties unrelated to connections and replacement by updateShape. */
+    public BlockState preserve(BlockPos pos, BlockState calculated) {
+        return locks.getOrDefault(pos.asLong(), calculated);
+    }
+
+    /** Guard direct state writes as well as neighbor updates (e.g. furnace block-entity ticks).
+     * Explicit replacement/destruction still removes the lock through the cleanup hook. */
+    public boolean blocksWrite(BlockPos pos, BlockState requested) {
+        BlockState reference = locks.get(pos.asLong());
+        return reference != null && reference.getBlock() == requested.getBlock() && reference != requested;
+    }
+
+    /** Publish the new reference BEFORE the write, so guards and recursive neighbor updates agree.
+     * Failed writes roll back the reference, and no broad bypass is left active. Server thread only. */
+    public boolean setManually(ServerLevel level, BlockPos pos, BlockState state, int flags) {
+        BlockState previous = locks.get(pos.asLong());
+        if (previous == null) return level.setBlock(pos, state, flags);
+        locks.put(pos.asLong(), state);
+        boolean success = false;
+        try {
+            success = level.setBlock(pos, state, flags);
+            if (success) setDirty();
+            return success;
+        } finally {
+            if (!success) locks.put(pos.asLong(), previous);
+        }
+    }
+}

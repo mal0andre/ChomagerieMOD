@@ -33,6 +33,12 @@ loom {
 }
 
 fabricApi {
+    configureTests {
+        createSourceSet = true
+        modId = "chomagerie-test"
+        enableGameTests = true
+        enableClientGameTests = false
+    }
     configureDataGeneration {
         client = true
     }
@@ -92,9 +98,12 @@ processResources {
     filteringCharset "UTF-8"
 
     filesMatching("fabric.mod.json") {
-        expand "version": project.version,
+        expand(["version": project.version,
                 "minecraft_version": project.minecraft_version,
-                "loader_version": project.loader_version
+                "loader_version": project.loader_version]) {
+            // Preserve JSON escapes (notably the newline in the mod description).
+            escapeBackslash = true
+        }
     }
 }
 

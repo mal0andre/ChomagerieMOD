@@ -5,7 +5,13 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "FarmlandBlockMixin",
-    "PlayerInventoryMixin"
+    "PlayerInventoryMixin",
+    "DebugStickMixin",
+    "BlockStateLockMixin",
+    "LockCleanupMixin",
+    "BlockToolItemUseMixin",
+    "DebugStickRecipeMixin",
+    "BlockToolInteractionMixin"
   ],
   "injectors": {
     "defaultRequire": 1

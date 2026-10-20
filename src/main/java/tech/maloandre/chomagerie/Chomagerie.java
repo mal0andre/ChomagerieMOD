@@ -10,6 +10,8 @@ import net.minecraft.server.level.ServerPlayer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tech.maloandre.chomagerie.config.ServerConfig;
+import tech.maloandre.chomagerie.blockstate.BlockToolsConfig;
+import tech.maloandre.chomagerie.blockstate.SurvivalDebugStick;
 import tech.maloandre.chomagerie.event.ItemStackDepletedCallback;
 import tech.maloandre.chomagerie.gamerule.ModGameRules;
 import tech.maloandre.chomagerie.network.ConfigSyncPayload;
@@ -35,6 +37,8 @@ public class Chomagerie implements ModInitializer {
         // Initialize server configuration
         ServerConfig.getInstance();
         ModGameRules.register();
+        BlockToolsConfig.load();
+        SurvivalDebugStick.register();
 
         // Register network packet types
         PayloadTypeRegistry.serverboundPlay().register(VersionCheckPayload.ID, VersionCheckPayload.CODEC);

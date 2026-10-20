@@ -47,6 +47,14 @@ The server can control when farmland can be trampled.
 * Prevent mobs from trampling farmland.
 * Allow trampling only when wearing leather boots, depending on the server configuration.
 
+### Survival Debug Stick and Block State Locks 🪄
+
+Craft a vanilla Debug Stick with the original shaped recipe: two gold ingots, one netherite ingot, two redstone dust and two sticks (see the layout in the documentation). By default all blocks, properties and values are editable, including waterlogged. In Survival, left-click selects a property and right-click changes its value; hold Shift to cycle backwards.
+
+Right-click any block with honeycomb to freeze its entire block state (orientation, growth, redstone properties, connections, etc.). Debug Stick edits become the new locked values. Right-click with an axe to remove the lock and resume normal behavior; that click does not also strip the block. Block entity inventories and processing are separate from block states. Locks persist with the world. These features work on a dedicated Fabric server with vanilla clients.
+
+Server policy, supported blocks, persistence details and test instructions: [Block tools documentation](docs/block-tools.md). Inspired and adapted from [JustS-js/debugStickSurvival](https://github.com/JustS-js/debugStickSurvival) (CC0-1.0).
+
 ### Useful Recipes 🔨
 
 Chomagerie also adds useful recipes to simplify crafting on the server.

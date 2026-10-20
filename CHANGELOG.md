@@ -1,5 +1,22 @@
 ## Release
 
+### [Unreleased]
+
+#### Added
+- Add Survival Debug Stick interactions ported from JustS-js/debugStickSurvival, including property selection, reverse cycling with Shift, and vanilla property messages.
+- Add persistent honeycomb locks for the complete BlockState of every targetable block, including blocks without properties.
+- Allow Debug Stick edits to update the persisted locked state; right-click with an axe to unlock and resume normal block behavior.
+- Add server-side block-tool configuration with unrestricted Debug Stick defaults, optional feedback and effects, and creative-mode item/tool preservation.
+- Add 15 Chomagerie GameTests covering property cycling, permissions, full-state locks, interactive blocks, persistence, cleanup, gravity, and the existing crafting recipe.
+- Document usage, configuration, validation, limitations, and attribution to JustS-js/debugStickSurvival (CC0-1.0).
+
+#### Changed
+- Handle block tools before normal chest, door, and other block interactions while respecting Fabric protection callbacks.
+- Keep the original shaped Debug Stick recipe using gold, netherite, redstone, and sticks, with an option to disable it.
+
+#### Fixed
+- Preserve JSON escapes when expanding mod metadata during resource processing.
+
 ### [1.5.4] - 2026-10-17
 
 #### Added
