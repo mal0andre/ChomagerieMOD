@@ -298,3 +298,5 @@ gradle-app.setting
 
 /run/
 /.idea/
+# Separate clone of the GitHub Wiki (published through its own Git repository).
+/wiki/

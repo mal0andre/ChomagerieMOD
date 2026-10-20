@@ -8,7 +8,8 @@
 - Allow Debug Stick edits to update the persisted locked state; right-click with an axe to unlock and resume normal block behavior.
 - Add server-side block-tool configuration with unrestricted Debug Stick defaults, optional feedback and effects, and creative-mode item/tool preservation.
 - Add 15 Chomagerie GameTests covering property cycling, permissions, full-state locks, interactive blocks, persistence, cleanup, gravity, and the existing crafting recipe.
-- Document usage, configuration, validation, limitations, and attribution to JustS-js/debugStickSurvival (CC0-1.0).
+- Provide a complete GitHub Wiki with installation, player guides, server configuration, troubleshooting, validation, and JustS attribution (CC0-1.0).
+- Generate the complete 291-recipe wiki catalogue from source JSON files and validate wiki navigation and JSON examples.
 
 #### Changed
 - Handle block tools before normal chest, door, and other block interactions while respecting Fabric protection callbacks.
