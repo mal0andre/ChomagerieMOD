@@ -31,5 +31,13 @@
   "chomagerie.config.team_tag.gradient_start": "Gradient Start",
   "chomagerie.config.team_tag.gradient_start.comment": "Legacy value kept for config migration.",
   "chomagerie.config.team_tag.gradient_end": "Gradient End",
-  "chomagerie.config.team_tag.gradient_end.comment": "Legacy value kept for config migration."
+  "chomagerie.config.team_tag.gradient_end.comment": "Legacy value kept for config migration.",
+  "chomagerie.config.tab.lock_overlay": "Lock Overlay",
+  "chomagerie.config.section.lock_overlay": "Locked block overlay",
+  "chomagerie.config.lock_overlay.enabled": "Show locked blocks",
+  "chomagerie.config.lock_overlay.enabled.comment": "Colored highlight visible through blocks. Requires Chomagerie on both client and server. Unlocked blocks are not highlighted.",
+  "chomagerie.config.lock_overlay.distance": "View distance (blocks)",
+  "chomagerie.config.lock_overlay.distance.comment": "Range around the player, from 8 to 128 blocks (default 32). Only loaded chunks are displayed.",
+  "chomagerie.config.lock_overlay.color": "Highlight color",
+  "chomagerie.config.lock_overlay.color.comment": "Choose the outline and fill color. Red by default; changes apply immediately and are saved for this client."
 }

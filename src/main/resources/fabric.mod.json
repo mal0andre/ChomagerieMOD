@@ -3,16 +3,16 @@
   "id": "chomagerie",
   "version": "${version}",
   "name": "Chomagerie",
-  "description": "Client mod for the Chomagerie server.\nIncludes ShulkerRefill - an automatic refill system from shulker boxes with name filtering, customizable sounds and configurable messages.",
+  "description": "Quality-of-life tools for Chomagerie: automatic shulker refills, player tags, recipes, crop protection, a Survival Debug Stick and persistent block state locks. Includes an optional client overlay with customizable colors to locate locked blocks through walls.",
   "authors": [
     "mal0andre"
   ],
   "contact": {
     "homepage": "https://golriver.fr",
-    "sources": "https://github.com/mal0andre/Chomagerie",
-    "issues": "https://github.com/mal0andre/Chomagerie/issues",
+    "sources": "https://github.com/mal0andre/ChomagerieMOD",
+    "issues": "https://github.com/mal0andre/ChomagerieMOD/issues",
     "discord": "https://discord.gg/jYrjqckBTP",
-    "license": "https://github.com/mal0andre/Chomagerie/blob/main/LICENSE.txt"
+    "license": "https://github.com/mal0andre/ChomagerieMOD/blob/master/LICENSE.txt"
   },
   "contributors": [
     "Chomagerie server contributors"

@@ -4,8 +4,7 @@
   "package": "tech.maloandre.chomagerie.mixin.client",
   "compatibilityLevel": "JAVA_21",
   "client": [
-    "KeyMappingCategoryMixin",
-    "OptionsAccessor"
+    "KeyMappingCategoryMixin"
   ],
   "injectors": {
     "defaultRequire": 1

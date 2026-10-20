@@ -3,23 +3,20 @@ package tech.maloandre.chomagerie.client;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.minecraft.client.KeyMapping;
-import net.minecraft.client.Options;
 import net.minecraft.resources.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tech.maloandre.chomagerie.Chomagerie;
 import tech.maloandre.chomagerie.client.command.ChomagerieCommand;
 import tech.maloandre.chomagerie.client.config.ChomagerieConfig;
-import tech.maloandre.chomagerie.client.config.ModMenuIntegration;
+import tech.maloandre.chomagerie.client.config.ChomagerieConfigScreen;
 import tech.maloandre.chomagerie.client.network.ClientNetworkHandler;
+import tech.maloandre.chomagerie.client.overlay.LockOverlay;
 import tech.maloandre.chomagerie.config.ModState;
-import tech.maloandre.chomagerie.mixin.client.OptionsAccessor;
-
-import java.util.Arrays;
 
 public class ChomagerieClient implements ClientModInitializer {
 
@@ -28,7 +25,6 @@ public class ChomagerieClient implements ClientModInitializer {
             Identifier.fromNamespaceAndPath(Chomagerie.MOD_ID, "chomagerie")
     );
     private static KeyMapping openConfigKey;
-    private static boolean keyMappingAdded;
 
     @Override
     public void onInitializeClient() {
@@ -46,6 +42,7 @@ public class ChomagerieClient implements ClientModInitializer {
 
         // Initialize network handler
         ClientNetworkHandler.init();
+        LockOverlay.register();
         registerKeyBindings();
 
         // Synchronize config to server on connection
@@ -63,32 +60,17 @@ public class ChomagerieClient implements ClientModInitializer {
     }
 
     private static void registerKeyBindings() {
-        openConfigKey = new KeyMapping(
+        openConfigKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "key.chomagerie.open_config",
                 InputConstants.Type.KEYBOARD,
                 InputConstants.KEY_K,
                 CHOMAGERIE_CATEGORY
-        );
-
-        ClientLifecycleEvents.CLIENT_STARTED.register(client -> addKeyMapping(client.options, openConfigKey));
+        ));
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (openConfigKey.consumeClick()) {
-                client.setScreenAndShow(ModMenuIntegration.createConfigScreen(null));
+                client.setScreenAndShow(new ChomagerieConfigScreen(null));
             }
         });
-    }
-
-    private static void addKeyMapping(Options options, KeyMapping keyMapping) {
-        if (keyMappingAdded) {
-            return;
-        }
-
-        KeyMapping[] updatedMappings = Arrays.copyOf(options.keyMappings, options.keyMappings.length + 1);
-        updatedMappings[updatedMappings.length - 1] = keyMapping;
-
-        ((OptionsAccessor) options).chomagerie$setKeyMappings(updatedMappings);
-        KeyMapping.resetMapping();
-        keyMappingAdded = true;
     }
 }

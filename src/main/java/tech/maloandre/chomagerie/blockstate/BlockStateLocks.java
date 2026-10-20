@@ -3,14 +3,19 @@ package tech.maloandre.chomagerie.blockstate;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import it.unimi.dsi.fastutil.longs.LongSet;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.saveddata.SavedDataType;
 
 import java.util.List;
+import java.util.function.LongPredicate;
 
 /** Dimension-owned saved data. No global world references, scans or per-interaction disk writes. */
 public final class BlockStateLocks extends SavedData {
@@ -25,15 +30,52 @@ public final class BlockStateLocks extends SavedData {
             Identifier.fromNamespaceAndPath("chomagerie", "block_state_locks"), BlockStateLocks::new, CODEC, null);
     private final Long2ObjectOpenHashMap<BlockState> locks = new Long2ObjectOpenHashMap<>();
 
+    // Rebuilt from saved entries; queries never scan all locks in a dimension or load chunks.
+    private final Long2ObjectOpenHashMap<LongSet> chunks = new Long2ObjectOpenHashMap<>();
+
     public BlockStateLocks() { }
-    private BlockStateLocks(List<Entry> entries) { entries.forEach(e -> locks.put(e.pos, e.state)); }
+    private BlockStateLocks(List<Entry> entries) { entries.forEach(e -> { locks.put(e.pos, e.state); index(BlockPos.of(e.pos)); }); }
     private List<Entry> entries() {
         return locks.long2ObjectEntrySet().stream().map(e -> new Entry(e.getLongKey(), e.getValue())).toList();
     }
     public static BlockStateLocks get(ServerLevel level) { return level.getDataStorage().computeIfAbsent(TYPE); }
     public boolean contains(BlockPos pos) { return locks.containsKey(pos.asLong()); }
-    public void lock(BlockPos pos, BlockState state) { locks.put(pos.asLong(), state); setDirty(); }
-    public void remove(BlockPos pos) { if (locks.remove(pos.asLong()) != null) setDirty(); }
+    public void lock(BlockPos pos, BlockState state) {
+        locks.put(pos.asLong(), state);
+        index(pos);
+        setDirty();
+    }
+    private void index(BlockPos pos) {
+        chunks.computeIfAbsent(ChunkPos.pack(pos.getX() >> 4, pos.getZ() >> 4), key -> new LongOpenHashSet()).add(pos.asLong());
+    }
+    public void remove(BlockPos pos) {
+        if (locks.remove(pos.asLong()) == null) return;
+        long chunk = ChunkPos.pack(pos.getX() >> 4, pos.getZ() >> 4);
+        LongSet positions = chunks.get(chunk);
+        positions.remove(pos.asLong());
+        if (positions.isEmpty()) chunks.remove(chunk);
+        setDirty();
+    }
+
+    /** Spherical distance from block centers, limited to already available chunks. */
+    public LongSet nearby(Vec3 center, int distance, LongPredicate availableChunk) {
+        LongSet result = new LongOpenHashSet();
+        int minX = ((int) Math.floor(center.x - distance)) >> 4;
+        int maxX = ((int) Math.floor(center.x + distance)) >> 4;
+        int minZ = ((int) Math.floor(center.z - distance)) >> 4;
+        int maxZ = ((int) Math.floor(center.z + distance)) >> 4;
+        for (int x = minX; x <= maxX; x++) {
+            for (int z = minZ; z <= maxZ; z++) {
+                long chunk = ChunkPos.pack(x, z);
+                LongSet positions = chunks.get(chunk);
+                if (positions == null || !availableChunk.test(chunk)) continue;
+                for (long packed : positions) {
+                    if (Vec3.atCenterOf(BlockPos.of(packed)).distanceToSqr(center) <= (double) distance * distance) result.add(packed);
+                }
+            }
+        }
+        return result;
+    }
     /** Full snapshot, including properties unrelated to connections and replacement by updateShape. */
     public BlockState preserve(BlockPos pos, BlockState calculated) {
         return locks.getOrDefault(pos.asLong(), calculated);

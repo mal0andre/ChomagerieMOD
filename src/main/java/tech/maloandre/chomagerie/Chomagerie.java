@@ -15,6 +15,7 @@ import tech.maloandre.chomagerie.blockstate.SurvivalDebugStick;
 import tech.maloandre.chomagerie.event.ItemStackDepletedCallback;
 import tech.maloandre.chomagerie.gamerule.ModGameRules;
 import tech.maloandre.chomagerie.network.ConfigSyncPayload;
+import tech.maloandre.chomagerie.network.LockOverlaySync;
 import tech.maloandre.chomagerie.network.RefillNotificationPayload;
 import tech.maloandre.chomagerie.network.TeamManageRequestPayload;
 import tech.maloandre.chomagerie.network.TeamManageSyncPayload;
@@ -39,6 +40,7 @@ public class Chomagerie implements ModInitializer {
         ModGameRules.register();
         BlockToolsConfig.load();
         SurvivalDebugStick.register();
+        LockOverlaySync.register();
 
         // Register network packet types
         PayloadTypeRegistry.serverboundPlay().register(VersionCheckPayload.ID, VersionCheckPayload.CODEC);

@@ -417,6 +417,65 @@ public class BlockToolsGameTests {
     }
 
     @GameTest
+    public void overlayRangeIndexAndCleanup(GameTestHelper h) {
+        var locks = new BlockStateLocks();
+        var origin = new BlockPos(-1, 64, -1);
+        var edge = origin.offset(8, 0, 0);
+        var outside = origin.offset(8, 1, 0);
+        var distant = origin.offset(2048, 0, 0);
+        var state = Blocks.STONE.defaultBlockState();
+        for (var pos : List.of(origin, edge, outside, distant)) locks.lock(pos, state);
+        var center = Vec3.atCenterOf(origin);
+        var visible = locks.nearby(center, 8, chunk -> true);
+        check(visible.size() == 2 && visible.contains(origin.asLong()) && visible.contains(edge.asLong()),
+                "Include negative chunk coordinates and exact spherical boundary, exclude distant/diagonal locks");
+        long negativeChunk = net.minecraft.world.level.ChunkPos.pack(-1, -1);
+        var loaded = locks.nearby(center, 8, chunk -> chunk != negativeChunk);
+        check(!loaded.contains(origin.asLong()) && loaded.contains(edge.asLong()), "Unavailable chunks must not enter overlay snapshot");
+        locks.lock(origin, Blocks.DIRT.defaultBlockState());
+        check(locks.nearby(center, 8, chunk -> true).size() == 2, "Updating a lock must not duplicate its index entry");
+        locks.remove(origin);
+        locks.remove(origin);
+        locks.remove(edge);
+        check(locks.nearby(center, 8, chunk -> true).isEmpty(), "Unlocked/replaced positions must disappear, repeated removal must be safe");
+        locks.lock(origin, state);
+        check(locks.nearby(center, 8, chunk -> true).contains(origin.asLong()), "Removed chunk index must be recreated on relock");
+        h.succeed();
+    }
+
+    @GameTest
+    public void overlayPayloadBoundsAndRoundTrip(GameTestHelper h) {
+        var dimension = net.minecraft.resources.Identifier.parse("minecraft:the_nether");
+        long[] positions = new long[tech.maloandre.chomagerie.network.LockOverlayPayload.MAX_POSITIONS];
+        for (int i = 0; i < positions.length; i++) positions[i] = new BlockPos(-i, i % 384 - 64, i).asLong();
+        var raw = io.netty.buffer.Unpooled.buffer();
+        var buf = new net.minecraft.network.RegistryFriendlyByteBuf(raw, h.getLevel().registryAccess());
+        try {
+            var expected = new tech.maloandre.chomagerie.network.LockOverlayPayload(dimension, true, true, positions);
+            var codec = tech.maloandre.chomagerie.network.LockOverlayPayload.CODEC;
+            codec.encode(buf, expected);
+            var decoded = codec.decode(buf);
+            check(decoded.dimension().equals(dimension) && decoded.reset() && decoded.locked()
+                    && java.util.Arrays.equals(decoded.positions(), positions), "Full overlay batch must survive network round trip");
+            buf.clear();
+            var subscriptionCodec = tech.maloandre.chomagerie.network.LockOverlaySubscriptionPayload.CODEC;
+            // Even a manually encoded out-of-range request must be clamped on the server.
+            buf.writeBoolean(true); buf.writeVarInt(Integer.MAX_VALUE);
+            check(subscriptionCodec.decode(buf).distance() == 128, "Clamp excessive client distance");
+            buf.clear(); buf.writeBoolean(false); buf.writeVarInt(-100);
+            var disabled = subscriptionCodec.decode(buf);
+            check(!disabled.enabled() && disabled.distance() == 8, "Disable must survive decoding, clamp negative distance");
+            for (int invalidSize : new int[]{-1, positions.length + 1}) {
+                buf.clear(); buf.writeIdentifier(dimension); buf.writeBoolean(false); buf.writeBoolean(true); buf.writeVarInt(invalidSize);
+                boolean rejected = false;
+                try { codec.decode(buf); } catch (io.netty.handler.codec.DecoderException expectedFailure) { rejected = true; }
+                check(rejected, "Reject invalid overlay batch before allocating positions");
+            }
+        } finally { buf.release(); }
+        h.succeed();
+    }
+
+    @GameTest
     public void savedDataDiskRoundTrip(GameTestHelper h) throws Exception {
         var level = h.getLevel(); var pos = h.absolutePos(LOCAL);
         var expected = Blocks.GLASS_PANE.defaultBlockState().setValue(BlockStateProperties.EAST, true);
@@ -429,6 +488,8 @@ public class BlockToolsGameTests {
             try (var storage = new SavedDataStorage(dir, level.getServer().getFixerUpper(), level.registryAccess())) {
                 var loaded = storage.computeIfAbsent(BlockStateLocks.TYPE);
                 check(loaded.contains(pos), "Lock lost after disk reload");
+                check(loaded.nearby(Vec3.atCenterOf(pos), 8, chunk -> true).contains(pos.asLong()),
+                        "Overlay chunk index must be rebuilt after disk reload");
                 check(loaded.preserve(pos, Blocks.GLASS_PANE.defaultBlockState()) == expected, "Reference lost after disk reload");
             }
         } finally {

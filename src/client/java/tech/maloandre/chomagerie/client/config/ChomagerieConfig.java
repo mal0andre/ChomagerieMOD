@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import net.fabricmc.loader.api.FabricLoader;
 import tech.maloandre.chomagerie.client.network.ClientNetworkHandler;
 import tech.maloandre.chomagerie.config.ModState;
+import tech.maloandre.chomagerie.network.LockOverlaySubscriptionPayload;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -22,6 +23,7 @@ public class ChomagerieConfig {
     public ShulkerRefillConfig shulkerRefill = new ShulkerRefillConfig();
 
     public TeamTagConfig teamTag = new TeamTagConfig();
+    public LockOverlayConfig lockOverlay = new LockOverlayConfig();
 
     // Notifications configuration
     public NotificationsConfig notifications = new NotificationsConfig();
@@ -58,6 +60,8 @@ public class ChomagerieConfig {
                     if (config.notifications == null) {
                         config.notifications = new NotificationsConfig();
                     }
+                    if (config.lockOverlay == null) config.lockOverlay = new LockOverlayConfig();
+                    config.lockOverlay.distance = config.lockOverlay.getDistance();
                     // Synchroniser ModState avec la configuration chargée
                     ModState.setClientEnabled(config.shulkerRefill.enabled);
                     return config;
@@ -110,12 +114,30 @@ public class ChomagerieConfig {
                     if (loaded.notifications != null) {
                         this.notifications = loaded.notifications;
                     }
+                    this.lockOverlay = loaded.lockOverlay == null ? new LockOverlayConfig() : loaded.lockOverlay;
+                    this.lockOverlay.distance = this.lockOverlay.getDistance();
                     // Synchroniser ModState avec la configuration rechargée
                     ModState.setClientEnabled(this.shulkerRefill.isEnabled());
                 }
             } catch (IOException e) {
                 System.err.println("Erreur lors du rechargement de la configuration de Chomagerie: " + e.getMessage());
             }
+        }
+    }
+
+    public static class LockOverlayConfig {
+        public static final String DEFAULT_COLOR = "#FF3030";
+        public boolean enabled = false;
+        public int distance = LockOverlaySubscriptionPayload.DEFAULT_DISTANCE;
+        public String color = DEFAULT_COLOR;
+
+        public int getColorRgb() {
+            String value = color != null && color.matches("#[0-9a-fA-F]{6}") ? color : DEFAULT_COLOR;
+            return Integer.parseInt(value.substring(1), 16);
+        }
+
+        public int getDistance() {
+            return LockOverlaySubscriptionPayload.clampDistance(distance);
         }
     }
 

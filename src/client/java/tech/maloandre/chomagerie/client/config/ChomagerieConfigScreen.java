@@ -3,7 +3,9 @@ package tech.maloandre.chomagerie.client.config;
 import com.google.common.collect.ImmutableList;
 import fi.dy.masa.malilib.config.IConfigOptionListEntry;
 import fi.dy.masa.malilib.config.options.ConfigBoolean;
+import fi.dy.masa.malilib.config.options.ConfigInteger;
 import fi.dy.masa.malilib.config.options.ConfigColorList;
+import fi.dy.masa.malilib.config.options.ConfigColor;
 import fi.dy.masa.malilib.config.options.ConfigOptionList;
 import fi.dy.masa.malilib.config.options.ConfigString;
 import fi.dy.masa.malilib.config.options.ConfigStringList;
@@ -15,6 +17,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.resources.language.I18n;
 import tech.maloandre.chomagerie.Chomagerie;
 import tech.maloandre.chomagerie.config.ModState;
+import tech.maloandre.chomagerie.network.LockOverlaySubscriptionPayload;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +33,7 @@ public class ChomagerieConfigScreen extends GuiConfigsBase {
     private final List<ConfigOptionWrapper> allOptions;
     private final List<ConfigOptionWrapper> shulkerRefillOptions;
     private final List<ConfigOptionWrapper> teamTagOptions;
+    private final List<ConfigOptionWrapper> lockOverlayOptions;
 
     public ChomagerieConfigScreen(Screen parent) {
         super(10, LIST_Y, Chomagerie.MOD_ID, parent, "chomagerie.gui.title.configs");
@@ -38,7 +42,8 @@ public class ChomagerieConfigScreen extends GuiConfigsBase {
         config.reload();
         this.shulkerRefillOptions = createShulkerRefillOptions(config);
         this.teamTagOptions = createTeamTagOptions(config);
-        this.allOptions = createAllOptions(this.shulkerRefillOptions, this.teamTagOptions);
+        this.lockOverlayOptions = createLockOverlayOptions(config);
+        this.allOptions = createAllOptions(this.shulkerRefillOptions, this.teamTagOptions, this.lockOverlayOptions);
     }
 
     @Override
@@ -46,15 +51,16 @@ public class ChomagerieConfigScreen extends GuiConfigsBase {
         super.initGui();
 
         int x = 10;
+        int tabWidth = Math.min(TAB_WIDTH, Math.max(40, (this.width - 20) / ConfigTab.values().length - TAB_SPACING));
         for (ConfigTab tab : ConfigTab.values()) {
-            ButtonGeneric button = new ButtonGeneric(x, TAB_Y, TAB_WIDTH, 20, I18n.get(tab.translationKey));
+            ButtonGeneric button = new ButtonGeneric(x, TAB_Y, tabWidth, 20, I18n.get(tab.translationKey));
             button.setEnabled(activeTab != tab);
             addButton(button, (ButtonBase clickedButton, int mouseButton) -> {
                 activeTab = tab;
                 reCreateListWidget();
                 initGui();
             });
-            x += TAB_WIDTH + TAB_SPACING;
+            x += tabWidth + TAB_SPACING;
         }
     }
 
@@ -68,16 +74,19 @@ public class ChomagerieConfigScreen extends GuiConfigsBase {
             case ALL -> this.allOptions;
             case SHULKER_REFILL -> this.shulkerRefillOptions;
             case TEAM_TAG -> this.teamTagOptions;
+            case LOCK_OVERLAY -> this.lockOverlayOptions;
         };
     }
 
     private static List<ConfigOptionWrapper> createAllOptions(List<ConfigOptionWrapper> shulkerRefillOptions,
-            List<ConfigOptionWrapper> teamTagOptions) {
+            List<ConfigOptionWrapper> teamTagOptions, List<ConfigOptionWrapper> lockOverlayOptions) {
         List<ConfigOptionWrapper> configs = new ArrayList<>();
         configs.add(new ConfigOptionWrapper(I18n.get("chomagerie.config.section.shulker_refill")));
         configs.addAll(shulkerRefillOptions);
         configs.add(new ConfigOptionWrapper(I18n.get("chomagerie.config.section.team_tag")));
         configs.addAll(teamTagOptions);
+        configs.add(new ConfigOptionWrapper(I18n.get("chomagerie.config.section.lock_overlay")));
+        configs.addAll(lockOverlayOptions);
         return configs;
     }
 
@@ -108,6 +117,31 @@ public class ChomagerieConfigScreen extends GuiConfigsBase {
                 "chomagerie.config.shulker_refill.shulker_name.comment",
                 option -> config.shulkerRefill.setShulkerNameFilters(option.getStrings()), config)));
 
+        return configs;
+    }
+
+    private static List<ConfigOptionWrapper> createLockOverlayOptions(ChomagerieConfig config) {
+        List<ConfigOptionWrapper> configs = new ArrayList<>();
+        configs.add(new ConfigOptionWrapper(booleanOption("chomagerie.config.lock_overlay.enabled",
+                config.lockOverlay.enabled, "chomagerie.config.lock_overlay.enabled.comment",
+                option -> config.lockOverlay.enabled = option.getBooleanValue(), config)));
+        ConfigInteger distance = new ConfigInteger("chomagerie.config.lock_overlay.distance", config.lockOverlay.getDistance(),
+                LockOverlaySubscriptionPayload.MIN_DISTANCE, LockOverlaySubscriptionPayload.MAX_DISTANCE, true,
+                "chomagerie.config.lock_overlay.distance.comment");
+        applyTranslation(distance, "chomagerie.config.lock_overlay.distance");
+        distance.setValueChangeCallback(option -> {
+            config.lockOverlay.distance = option.getIntegerValue();
+            save(config);
+        });
+        configs.add(new ConfigOptionWrapper(distance));
+        ConfigColor color = new ConfigColor("chomagerie.config.lock_overlay.color",
+                String.format("#FF%06X", config.lockOverlay.getColorRgb()), "chomagerie.config.lock_overlay.color.comment");
+        applyTranslation(color, "chomagerie.config.lock_overlay.color");
+        color.setValueChangeCallback(option -> {
+            config.lockOverlay.color = String.format("#%06X", option.getIntegerValue() & 0xFFFFFF);
+            save(config);
+        });
+        configs.add(new ConfigOptionWrapper(color));
         return configs;
     }
 
@@ -247,7 +281,8 @@ public class ChomagerieConfigScreen extends GuiConfigsBase {
     private enum ConfigTab {
         ALL("chomagerie.config.tab.all"),
         SHULKER_REFILL("chomagerie.config.tab.shulker_refill"),
-        TEAM_TAG("chomagerie.config.tab.team_tag");
+        TEAM_TAG("chomagerie.config.tab.team_tag"),
+        LOCK_OVERLAY("chomagerie.config.tab.lock_overlay");
 
         private final String translationKey;
 

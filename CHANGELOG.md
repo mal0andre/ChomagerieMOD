@@ -1,21 +1,28 @@
 ## Release
 
-### [Unreleased]
+### [1.6.0] - 2026-10-20
 
 #### Added
+- Add a client-side color picker for the locked-block overlay, with immediate preview, saved preferences, and red as the default.
+- Add an optional client overlay showing server-synchronized locked blocks through walls with customizable colors, with a dedicated menu tab and an 8–128 block viewing range (32 by default).
+- Synchronize nearby lock changes only to opted-in compatible clients, with dimension/disconnection cleanup and bounded packet batches.
 - Add Survival Debug Stick interactions ported from JustS-js/debugStickSurvival, including property selection, reverse cycling with Shift, and vanilla property messages.
 - Add persistent honeycomb locks for the complete BlockState of every targetable block, including blocks without properties.
 - Allow Debug Stick edits to update the persisted locked state; right-click with an axe to unlock and resume normal block behavior.
 - Add server-side block-tool configuration with unrestricted Debug Stick defaults, optional feedback and effects, and creative-mode item/tool preservation.
-- Add 15 Chomagerie GameTests covering property cycling, permissions, full-state locks, interactive blocks, persistence, cleanup, gravity, and the existing crafting recipe.
+- Add 17 Chomagerie server GameTests covering block tools, persistence, cleanup, permissions, overlay range and packet bounds, plus a graphical client test for through-wall rendering, color changes, controls, and saved preferences.
 - Provide a complete GitHub Wiki with installation, player guides, server configuration, troubleshooting, validation, and JustS attribution (CC0-1.0).
 - Generate the complete 291-recipe wiki catalogue from source JSON files and validate wiki navigation and JSON examples.
 
 #### Changed
+- Replace repository documentation with the GitHub Wiki and provide scripts to maintain its recipe catalogue and validate pages.
 - Handle block tools before normal chest, door, and other block interactions while respecting Fabric protection callbacks.
 - Keep the original shaped Debug Stick recipe using gold, netherite, redstone, and sticks, with an option to disable it.
 
 #### Fixed
+- Update source, issue, and license links to the current repository and include LICENSE.txt in the distributable JAR.
+- Open the configuration keybind directly without loading the optional ModMenu API.
+- Register the configuration key through Fabric before options load, preserving saved key bindings and compatibility with client GameTests.
 - Preserve JSON escapes when expanding mod metadata during resource processing.
 
 ### [1.5.4] - 2026-10-17

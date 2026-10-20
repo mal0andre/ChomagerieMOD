@@ -37,7 +37,7 @@ fabricApi {
         createSourceSet = true
         modId = "chomagerie-test"
         enableGameTests = true
-        enableClientGameTests = false
+        enableClientGameTests = true
     }
     configureDataGeneration {
         client = true
@@ -131,8 +131,8 @@ java {
 }
 
 jar {
-    from("LICENSE") {
-        rename { "${it}_${project.archivesBaseName}" }
+    from("LICENSE.txt") {
+        rename { "${it}_${project.base.archivesName.get()}" }
     }
 }
 
