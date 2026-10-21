@@ -117,7 +117,10 @@ public final class BlockToolsConfig {
         public boolean allowDebugStickEditing = true;
         public boolean showFeedbackMessages = true;
         public boolean playEffects = true;
-        // Every targetable block is eligible, including blocks without any state properties.
-        public boolean allows(BlockState state) { return !state.isAir(); }
+        // Only states with a value the Debug Stick can cycle need a new lock.
+        public boolean allows(BlockState state) {
+            return !state.isAir() && state.getProperties().stream()
+                    .anyMatch(property -> property.getPossibleValues().size() > 1);
+        }
     }
 }

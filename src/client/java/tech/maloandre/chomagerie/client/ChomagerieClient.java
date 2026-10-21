@@ -16,6 +16,10 @@ import tech.maloandre.chomagerie.client.config.ChomagerieConfig;
 import tech.maloandre.chomagerie.client.config.ChomagerieConfigScreen;
 import tech.maloandre.chomagerie.client.network.ClientNetworkHandler;
 import tech.maloandre.chomagerie.client.overlay.LockOverlay;
+import tech.maloandre.chomagerie.client.overlay.BlockToolHud;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.minecraft.network.chat.Component;
+import tech.maloandre.chomagerie.network.LockOverlaySubscriptionPayload;
 import tech.maloandre.chomagerie.config.ModState;
 
 public class ChomagerieClient implements ClientModInitializer {
@@ -25,6 +29,7 @@ public class ChomagerieClient implements ClientModInitializer {
             Identifier.fromNamespaceAndPath(Chomagerie.MOD_ID, "chomagerie")
     );
     private static KeyMapping openConfigKey;
+    private static KeyMapping toggleOverlayKey;
 
     @Override
     public void onInitializeClient() {
@@ -43,6 +48,7 @@ public class ChomagerieClient implements ClientModInitializer {
         // Initialize network handler
         ClientNetworkHandler.init();
         LockOverlay.register();
+        BlockToolHud.register();
         registerKeyBindings();
 
         // Synchronize config to server on connection
@@ -67,7 +73,22 @@ public class ChomagerieClient implements ClientModInitializer {
                 CHOMAGERIE_CATEGORY
         ));
 
+        toggleOverlayKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+                "key.chomagerie.toggle_lock_overlay", InputConstants.Type.KEYBOARD, InputConstants.KEY_H, CHOMAGERIE_CATEGORY));
+
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            while (toggleOverlayKey.consumeClick()) {
+                if (client.player == null || client.gui.screen() != null) continue;
+                if (!ClientPlayNetworking.canSend(LockOverlaySubscriptionPayload.ID)) {
+                    client.gui.hud.setOverlayMessage(Component.translatable("chomagerie.overlay.unavailable"), false);
+                    continue;
+                }
+                var config = ChomagerieConfig.getInstance();
+                config.lockOverlay.enabled = !config.lockOverlay.enabled;
+                config.save();
+                client.gui.hud.setOverlayMessage(Component.translatable(config.lockOverlay.enabled
+                        ? "chomagerie.overlay.enabled" : "chomagerie.overlay.disabled"), false);
+            }
             while (openConfigKey.consumeClick()) {
                 client.setScreenAndShow(new ChomagerieConfigScreen(null));
             }

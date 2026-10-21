@@ -28,7 +28,8 @@ public final class LockInteractions {
         BlockState state = level.getBlockState(pos);
         var locks = BlockStateLocks.get(level);
         boolean locked = locks.contains(pos);
-        if (!locked && (!honeycomb || !config.allows(state))) return InteractionResult.PASS;
+        // Keep axe removal available for propertyless locks saved by older versions.
+        if ((honeycomb && !config.allows(state)) || (axe && !locked)) return InteractionResult.PASS;
         if (!SurvivalDebugStick.mayEdit(player, level, pos)) return InteractionResult.FAIL;
         if (honeycomb) {
             if (locked) return InteractionResult.SUCCESS;

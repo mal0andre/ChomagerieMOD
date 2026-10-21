@@ -28,5 +28,11 @@
   "chomagerie.config.lock_overlay.distance": "Distance (blocs)",
   "chomagerie.config.lock_overlay.distance.comment": "Portée autour du joueur, de 8 à 128 blocs (32 par défaut). Seuls les chunks chargés sont affichés.",
   "chomagerie.config.lock_overlay.color": "Couleur de surbrillance",
-  "chomagerie.config.lock_overlay.color.comment": "Choisir la couleur du contour et du remplissage. Rouge par défaut ; changement immédiat et sauvegardé pour ce client."
+  "chomagerie.config.lock_overlay.color.comment": "Choisir la couleur du contour et du remplissage. Rouge par défaut ; changement immédiat et sauvegardé pour ce client.",
+  "key.chomagerie.toggle_lock_overlay": "Activer / désactiver l’overlay des verrous",
+  "chomagerie.overlay.enabled": "Overlay des verrous activé",
+  "chomagerie.overlay.disabled": "Overlay des verrous désactivé",
+  "chomagerie.overlay.unavailable": "L’overlay nécessite Chomagerie sur le serveur.",
+  "chomagerie.config.lock_overlay.show_target_lock": "Indicateur de verrou",
+  "chomagerie.config.lock_overlay.show_target_lock.comment": "Afficher un petit cadenas à droite du viseur pour un bloc verrouillé, même sans overlay. Nécessite Chomagerie sur le serveur. Masqué avec F1 et dans les menus."
 }

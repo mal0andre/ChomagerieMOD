@@ -1,5 +1,19 @@
 ## Release
 
+### [Unreleased]
+
+#### Added
+- Add a configurable shortcut (H by default) to toggle and save the lock overlay without opening the menu.
+- Add an optional small padlock beside the crosshair for the nearby aimed locked block, even with the area overlay disabled; keep the vanilla Debug Stick property messages.
+- Add server tests for progressive delivery of 20,000 locks, chunk revision invalidation, target validation, and packet codecs, plus a graphical test for the compact padlock, absence of duplicate property text, and key rebinding.
+
+#### Changed
+- Restrict new honeycomb locks to blocks with at least one state property with multiple values; propertyless blocks consume no honeycomb for locking, existing locks remain axe-removable, and vanilla copper waxing is preserved.
+- Cache static overlay shapes between ticks, refresh dynamic shapes per tick, and cull geometry outside the camera frustum while preserving through-wall highlights.
+- Recompute stationary server snapshots only when nearby chunk locks, loaded chunks, or settings change; changes in distant chunks no longer invalidate them.
+- Limit overlay synchronization to 4,096 position changes per player every five ticks, prioritize removals, and progressively deliver all remaining positions.
+- Preserve vanilla clients and servers without the new channels; F1, menus, and third-person views hide the padlock without replacing vanilla action-bar messages.
+
 ### [1.6.0] - 2026-10-20
 
 #### Added

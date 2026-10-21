@@ -130,6 +130,7 @@ public class ChomagerieConfig {
         public boolean enabled = false;
         public int distance = LockOverlaySubscriptionPayload.DEFAULT_DISTANCE;
         public String color = DEFAULT_COLOR;
+        public boolean showTargetLock = true;
 
         public int getColorRgb() {
             String value = color != null && color.matches("#[0-9a-fA-F]{6}") ? color : DEFAULT_COLOR;

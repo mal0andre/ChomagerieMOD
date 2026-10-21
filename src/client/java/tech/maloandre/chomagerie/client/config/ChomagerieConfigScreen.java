@@ -142,6 +142,9 @@ public class ChomagerieConfigScreen extends GuiConfigsBase {
             save(config);
         });
         configs.add(new ConfigOptionWrapper(color));
+        configs.add(new ConfigOptionWrapper(booleanOption("chomagerie.config.lock_overlay.show_target_lock",
+                config.lockOverlay.showTargetLock, "chomagerie.config.lock_overlay.show_target_lock.comment",
+                option -> config.lockOverlay.showTargetLock = option.getBooleanValue(), config)));
         return configs;
     }
 

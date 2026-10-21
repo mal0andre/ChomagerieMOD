@@ -1,6 +1,7 @@
 package tech.maloandre.chomagerie.network;
 
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -10,6 +11,7 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.phys.Vec3;
 import tech.maloandre.chomagerie.blockstate.BlockStateLocks;
 import tech.maloandre.chomagerie.blockstate.BlockToolsConfig;
 
@@ -19,12 +21,17 @@ import java.util.UUID;
 
 /** Server-thread-only, opt-in synchronization; vanilla clients never receive custom packets. */
 public final class LockOverlaySync {
+    public static final int MAX_POSITIONS_PER_SYNC = 4096;
     private static final Map<UUID, Subscription> SUBSCRIPTIONS = new HashMap<>();
 
     private static final class Subscription {
         int distance;
         Identifier dimension;
-        LongSet sent = new LongOpenHashSet();
+        final LockOverlayDelta delta = new LockOverlayDelta();
+        Vec3 lastPosition;
+        Long2LongOpenHashMap revisions = new Long2LongOpenHashMap();
+        boolean lastEnabled;
+        LongSet available = new LongOpenHashSet();
         Subscription(int distance) { this.distance = distance; }
     }
 
@@ -44,7 +51,7 @@ public final class LockOverlaySync {
             }
         });
         ServerTickEvents.END_SERVER_TICK.register(server -> {
-            if (server.getTickCount() % 5 != 0) return;
+            if (SUBSCRIPTIONS.isEmpty() || server.getTickCount() % 5 != 0) return;
             for (ServerPlayer player : server.getPlayerList().getPlayers()) {
                 Subscription subscription = SUBSCRIPTIONS.get(player.getUUID());
                 if (subscription != null && ServerPlayNetworking.canSend(player, LockOverlayPayload.ID)) sync(player, subscription);
@@ -59,30 +66,37 @@ public final class LockOverlaySync {
         Identifier dimension = level.dimension().identifier();
         if (!dimension.equals(subscription.dimension)) {
             subscription.dimension = dimension;
-            subscription.sent.clear();
+            subscription.delta.clear();
+            subscription.lastPosition = null;
             ServerPlayNetworking.send(player, new LockOverlayPayload(dimension, true, false, new long[0]));
         }
-        LongSet current = BlockToolsConfig.get().blockStateLocking.enabled
-                ? BlockStateLocks.get(level).nearby(player.position(), subscription.distance,
-                    chunk -> level.hasChunk(ChunkPos.getX(chunk), ChunkPos.getZ(chunk)))
-                : new LongOpenHashSet();
-        LongSet removed = new LongOpenHashSet(subscription.sent);
-        removed.removeAll(current);
-        LongSet added = new LongOpenHashSet(current);
-        added.removeAll(subscription.sent);
-        sendBatches(player, dimension, false, removed);
-        sendBatches(player, dimension, true, added);
-        subscription.sent = current;
-    }
-
-    private static void sendBatches(ServerPlayer player, Identifier dimension, boolean locked, LongSet positions) {
-        var iterator = positions.iterator();
-        int remaining = positions.size();
-        while (remaining > 0) {
-            long[] batch = new long[Math.min(remaining, LockOverlayPayload.MAX_POSITIONS)];
-            for (int i = 0; i < batch.length; i++) batch[i] = iterator.nextLong();
-            ServerPlayNetworking.send(player, new LockOverlayPayload(dimension, false, locked, batch));
-            remaining -= batch.length;
+        var locks = BlockStateLocks.get(level);
+        boolean enabled = BlockToolsConfig.get().blockStateLocking.enabled;
+        LongSet available = new LongOpenHashSet();
+        Long2LongOpenHashMap revisions = new Long2LongOpenHashMap();
+        var center = player.position();
+        int distance = subscription.distance;
+        for (int x = ((int) Math.floor(center.x - distance)) >> 4; x <= ((int) Math.floor(center.x + distance)) >> 4; x++) {
+            for (int z = ((int) Math.floor(center.z - distance)) >> 4; z <= ((int) Math.floor(center.z + distance)) >> 4; z++) {
+                if (level.hasChunk(x, z)) {
+                    long chunk = ChunkPos.pack(x, z);
+                    available.add(chunk);
+                    long revision = locks.chunkRevision(chunk);
+                    if (revision != 0) revisions.put(chunk, revision);
+                }
+            }
+        }
+        if (!center.equals(subscription.lastPosition) || !revisions.equals(subscription.revisions)
+                || enabled != subscription.lastEnabled || !available.equals(subscription.available)) {
+            LongSet current = enabled ? locks.nearby(center, distance, available::contains) : new LongOpenHashSet();
+            subscription.delta.update(current);
+            subscription.lastPosition = center;
+            subscription.revisions = revisions;
+            subscription.lastEnabled = enabled;
+            subscription.available = available;
+        }
+        for (var change : subscription.delta.drain(MAX_POSITIONS_PER_SYNC)) {
+            ServerPlayNetworking.send(player, new LockOverlayPayload(dimension, false, change.locked(), change.positions()));
         }
     }
 

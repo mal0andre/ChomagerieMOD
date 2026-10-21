@@ -1,6 +1,9 @@
 package tech.maloandre.chomagerie.client.overlay;
 
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.block.state.BlockState;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
@@ -25,6 +28,11 @@ import java.util.List;
 /** Main-thread cache, immutable geometry per extracted frame, vanilla always-on-top rendering. */
 public final class LockOverlay {
     private static final LongSet LOCKS = new LongOpenHashSet();
+    private record CachedShape(BlockState state, long tick, List<AABB> boxes) { }
+    private record ChunkGeometry(AABB bounds, List<AABB> boxes) { }
+    private static final Long2ObjectOpenHashMap<LongSet> BY_CHUNK = new Long2ObjectOpenHashMap<>();
+    private static final Long2ObjectOpenHashMap<CachedShape> SHAPES = new Long2ObjectOpenHashMap<>();
+    private static List<ChunkGeometry> geometry = List.of();
     private record OverlayFrame(List<AABB> boxes, GizmoStyle style) { }
     private static final RenderStateDataKey<OverlayFrame> FRAME = RenderStateDataKey.create(() -> "chomagerie lock overlay");
     private static Identifier dimension;
@@ -36,10 +44,17 @@ public final class LockOverlay {
             var client = context.client();
             if (!requested || client.level == null || !ChomagerieConfig.getInstance().lockOverlay.enabled
                     || !client.level.dimension().identifier().equals(payload.dimension())) return;
-            if (payload.reset()) LOCKS.clear();
+            if (payload.reset()) clearLocks();
             for (long pos : payload.positions()) {
-                if (payload.locked()) LOCKS.add(pos);
-                else LOCKS.remove(pos);
+                long chunk = ChunkPos.pack(BlockPos.of(pos));
+                if (payload.locked()) {
+                    if (LOCKS.add(pos)) BY_CHUNK.computeIfAbsent(chunk, key -> new LongOpenHashSet()).add(pos);
+                } else if (LOCKS.remove(pos)) {
+                    SHAPES.remove(pos);
+                    LongSet positions = BY_CHUNK.get(chunk);
+                    positions.remove(pos);
+                    if (positions.isEmpty()) BY_CHUNK.remove(chunk);
+                }
             }
         });
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> clear());
@@ -51,16 +66,10 @@ public final class LockOverlay {
             var settings = ChomagerieConfig.getInstance().lockOverlay;
             if (requested && settings.enabled && client.player != null
                     && context.level().dimension().identifier().equals(dimension)) {
-                double rangeSquared = (double) settings.getDistance() * settings.getDistance();
-                for (long packed : LOCKS) {
-                    BlockPos pos = BlockPos.of(packed);
-                    if (!context.level().hasChunkAt(pos)
-                            || Vec3.atCenterOf(pos).distanceToSqr(client.player.position()) > rangeSquared) continue;
-                    var state = context.level().getBlockState(pos);
-                    if (state.isAir()) continue;
-                    var shape = state.getShape(context.level(), pos);
-                    if (shape.isEmpty()) boxes.add(new AABB(pos).inflate(0.002));
-                    else for (AABB box : shape.toAabbs()) boxes.add(box.move(pos).inflate(0.002));
+                var frustum = context.levelState().cameraRenderState.cullFrustum;
+                for (ChunkGeometry chunk : geometry) {
+                    if (frustum != null && !frustum.isVisible(chunk.bounds())) continue;
+                    for (AABB box : chunk.boxes()) if (frustum == null || frustum.isVisible(box)) boxes.add(box);
                 }
             }
             int rgb = settings.getColorRgb();
@@ -90,15 +99,64 @@ public final class LockOverlay {
         int distance = settings.getDistance();
         if (requested != settings.enabled || (settings.enabled && requestedDistance != distance)) {
             // Clear immediately on disable; rendering applies a reduced range before the next server update.
-            if (!settings.enabled) LOCKS.clear();
+            if (!settings.enabled) clearLocks();
             requested = settings.enabled;
             requestedDistance = distance;
             ClientPlayNetworking.send(new LockOverlaySubscriptionPayload(requested, distance));
         }
+        refreshGeometry(client);
+    }
+
+    /** World reads at most once per client tick; static shapes survive subsequent ticks unchanged. */
+    private static void refreshGeometry(Minecraft client) {
+        if (!requested) { geometry = List.of(); return; }
+        List<ChunkGeometry> chunks = new ArrayList<>();
+        double rangeSquared = (double) requestedDistance * requestedDistance;
+        long tick = client.level.getGameTime();
+        for (var entry : BY_CHUNK.long2ObjectEntrySet()) {
+            long chunk = entry.getLongKey();
+            if (!client.level.hasChunk(ChunkPos.getX(chunk), ChunkPos.getZ(chunk))) {
+                for (long packed : entry.getValue()) SHAPES.remove(packed);
+                continue;
+            }
+            List<AABB> boxes = new ArrayList<>();
+            for (long packed : entry.getValue()) {
+                BlockPos pos = BlockPos.of(packed);
+                if (Vec3.atCenterOf(pos).distanceToSqr(client.player.position()) > rangeSquared) continue;
+                BlockState state = client.level.getBlockState(pos);
+                if (state.isAir()) { SHAPES.remove(packed); continue; }
+                CachedShape cached = SHAPES.get(packed);
+                if (cached == null || cached.state() != state || (state.getBlock().hasDynamicShape() && cached.tick() != tick)) {
+                    var shape = state.getShape(client.level, pos);
+                    List<AABB> shapeBoxes = shape.isEmpty() ? List.of(new AABB(pos).inflate(0.002))
+                            : shape.toAabbs().stream().map(box -> box.move(pos).inflate(0.002)).toList();
+                    cached = new CachedShape(state, tick, shapeBoxes);
+                    SHAPES.put(packed, cached);
+                }
+                boxes.addAll(cached.boxes());
+            }
+            if (!boxes.isEmpty()) {
+                double minX = Double.POSITIVE_INFINITY, minY = minX, minZ = minX;
+                double maxX = Double.NEGATIVE_INFINITY, maxY = maxX, maxZ = maxX;
+                for (AABB box : boxes) {
+                    minX = Math.min(minX, box.minX); minY = Math.min(minY, box.minY); minZ = Math.min(minZ, box.minZ);
+                    maxX = Math.max(maxX, box.maxX); maxY = Math.max(maxY, box.maxY); maxZ = Math.max(maxZ, box.maxZ);
+                }
+                chunks.add(new ChunkGeometry(new AABB(minX, minY, minZ, maxX, maxY, maxZ), List.copyOf(boxes)));
+            }
+        }
+        geometry = List.copyOf(chunks);
+    }
+
+    private static void clearLocks() {
+        LOCKS.clear();
+        BY_CHUNK.clear();
+        SHAPES.clear();
+        geometry = List.of();
     }
 
     private static void clear() {
-        LOCKS.clear();
+        clearLocks();
         dimension = null;
         requested = false;
         requestedDistance = 0;

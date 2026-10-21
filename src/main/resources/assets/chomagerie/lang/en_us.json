@@ -39,5 +39,11 @@
   "chomagerie.config.lock_overlay.distance": "View distance (blocks)",
   "chomagerie.config.lock_overlay.distance.comment": "Range around the player, from 8 to 128 blocks (default 32). Only loaded chunks are displayed.",
   "chomagerie.config.lock_overlay.color": "Highlight color",
-  "chomagerie.config.lock_overlay.color.comment": "Choose the outline and fill color. Red by default; changes apply immediately and are saved for this client."
+  "chomagerie.config.lock_overlay.color.comment": "Choose the outline and fill color. Red by default; changes apply immediately and are saved for this client.",
+  "key.chomagerie.toggle_lock_overlay": "Toggle lock overlay",
+  "chomagerie.overlay.enabled": "Lock overlay enabled",
+  "chomagerie.overlay.disabled": "Lock overlay disabled",
+  "chomagerie.overlay.unavailable": "The overlay requires Chomagerie on the server.",
+  "chomagerie.config.lock_overlay.show_target_lock": "Target lock indicator",
+  "chomagerie.config.lock_overlay.show_target_lock.comment": "Show a small padlock to the right of the crosshair for a locked block, even with the overlay off. Requires Chomagerie on the server. Hidden with F1 and in menus."
 }

@@ -122,12 +122,29 @@ public class BlockToolsGameTests {
     public void replacementCleanupAndPropertylessBlock(GameTestHelper h) {
         var level = h.getLevel(); var pos = h.absolutePos(LOCAL); var locks = BlockStateLocks.get(level);
         var player = player(h, GameType.SURVIVAL); var honey = new ItemStack(Items.HONEYCOMB, 3);
-        level.setBlock(pos, Blocks.STONE.defaultBlockState(), 3); use(player, honey, pos);
-        check(honey.getCount() == 2 && locks.contains(pos), "Propertyless stone must also lock and consume honeycomb");
+        for (Block block : List.of(Blocks.STONE, Blocks.SAND, Blocks.DIRT, Blocks.GLASS)) {
+            level.setBlock(pos, block.defaultBlockState(), 18);
+            check(!useViaGameMode(player, honey, pos).consumesAction(), "Propertyless block must pass through: " + block);
+            check(honey.getCount() == 3 && !locks.contains(pos), "Propertyless block must not lock or consume honeycomb: " + block);
+        }
+        // Existing world saves can still contain propertyless locks from 1.6.0.
+        locks.lock(pos, level.getBlockState(pos));
+        check(!useViaGameMode(player, honey, pos).consumesAction() && honey.getCount() == 3,
+                "Honeycomb must also pass through on a legacy propertyless lock");
+        var axe = new ItemStack(Items.IRON_AXE);
+        check(useViaGameMode(player, axe, pos).consumesAction() && !locks.contains(pos) && axe.getDamageValue() == 1,
+                "Legacy propertyless locks must remain removable with an axe");
+        level.setBlock(pos, Blocks.COPPER_BLOCK.weathering().unaffected().defaultBlockState(), 18);
+        check(useViaGameMode(player, honey, pos).consumesAction() && level.getBlockState(pos).is(Blocks.COPPER_BLOCK.waxed().unaffected())
+                        && honey.getCount() == 2 && !locks.contains(pos),
+                "Propertyless copper must retain vanilla waxing without creating a lock");
         level.setBlock(pos, Blocks.GLASS_PANE.defaultBlockState(), 3); use(player, honey, pos);
+        check(locks.contains(pos) && honey.getCount() == 1, "Editable pane must lock and consume one honeycomb");
         level.setBlock(pos, Blocks.STAINED_GLASS_PANE.red().defaultBlockState(), 3);
         check(!locks.contains(pos), "Command-style replacement must remove lock");
-        use(player, honey, pos); level.destroyBlock(pos, false);
+        use(player, honey, pos);
+        check(locks.contains(pos) && honey.isEmpty(), "Replacement pane must accept a new lock");
+        level.destroyBlock(pos, false);
         check(!locks.contains(pos), "Destruction must remove lock");
         level.setBlock(pos, Blocks.STAINED_GLASS_PANE.red().defaultBlockState(), 3);
         check(!locks.contains(pos), "New block must not inherit lock");
@@ -329,7 +346,9 @@ public class BlockToolsGameTests {
         for (Block block : net.minecraft.core.registries.BuiltInRegistries.BLOCK) {
             BlockState state = block.defaultBlockState();
             if (state.isAir()) continue; // Air cannot be targeted with an item.
-            check(BlockToolsConfig.get().blockStateLocking.allows(state), "Rejected block: " + block);
+            boolean editable = state.getProperties().stream().anyMatch(property -> property.getPossibleValues().size() > 1);
+            check(BlockToolsConfig.get().blockStateLocking.allows(state) == editable, "Incorrect lock eligibility: " + block);
+            if (!editable) continue;
             locks.lock(LOCAL, state);
             for (Property<?> property : state.getProperties()) {
                 check(locks.preserve(LOCAL, state.cycle(property)) == state, "Snapshot must retain property: " + property);
@@ -337,7 +356,7 @@ public class BlockToolsGameTests {
             check(locks.preserve(LOCAL, Blocks.AIR.defaultBlockState()) == state, "Neighbor support loss must preserve full state");
             checked++;
         }
-        check(checked > 1000, "Registry-wide coverage must include all block families");
+        check(checked > 500, "Registry-wide coverage must include editable block families");
         h.succeed();
     }
 
@@ -381,14 +400,14 @@ public class BlockToolsGameTests {
     public void gravityAndScheduledTicksResumeAfterUnlock(GameTestHelper h) {
         var level = h.getLevel(); var pos = h.absolutePos(LOCAL); var player = player(h, GameType.SURVIVAL);
         level.removeBlock(pos.below(), false);
-        level.setBlock(pos, Blocks.SAND.defaultBlockState(), 18);
+        level.setBlock(pos, Blocks.ANVIL.defaultBlockState(), 18);
         useViaGameMode(player, new ItemStack(Items.HONEYCOMB), pos);
         h.runAfterDelay(8, () -> {
-            check(level.getBlockState(pos).is(Blocks.SAND), "Locked sand must not fall on its scheduled tick");
+            check(level.getBlockState(pos).is(Blocks.ANVIL), "Locked anvil must not fall on its scheduled tick");
             useViaGameMode(player, new ItemStack(Items.IRON_AXE), pos);
         });
         h.runAfterDelay(16, () -> {
-            check(!level.getBlockState(pos).is(Blocks.SAND), "Unlocked sand must resume gravity");
+            check(!level.getBlockState(pos).is(Blocks.ANVIL), "Unlocked anvil must resume gravity");
             check(!BlockStateLocks.get(level).contains(pos), "Falling block must not leave a lock");
             h.succeed();
         });
@@ -472,6 +491,96 @@ public class BlockToolsGameTests {
                 check(rejected, "Reject invalid overlay batch before allocating positions");
             }
         } finally { buf.release(); }
+        h.succeed();
+    }
+
+    @GameTest
+    public void overlayRevisionAndProgressiveDelivery(GameTestHelper h) {
+        var locks = new BlockStateLocks();
+        var pos = new BlockPos(-1, 64, -1);
+        long revision = locks.revision();
+        locks.lock(pos, Blocks.STONE.defaultBlockState());
+        check(locks.revision() == revision + 1, "New locks must invalidate stationary overlay snapshots");
+        locks.lock(pos, Blocks.DIRT.defaultBlockState());
+        check(locks.revision() == revision + 1, "State edits must not rebuild position snapshots");
+        locks.remove(pos); locks.remove(pos);
+        check(locks.revision() == revision + 2, "Only actual unlocks invalidate position snapshots");
+        long chunk = net.minecraft.world.level.ChunkPos.pack(pos);
+        check(locks.chunkRevision(chunk) == 0, "Empty chunks must not retain revision metadata");
+        locks.lock(pos, Blocks.STONE.defaultBlockState());
+        long localRevision = locks.chunkRevision(chunk);
+        locks.lock(pos.offset(1024, 0, 0), Blocks.STONE.defaultBlockState());
+        check(locks.chunkRevision(chunk) == localRevision, "Far-away edits must not invalidate stationary local overlays");
+        locks.remove(pos); locks.lock(pos, Blocks.STONE.defaultBlockState());
+        check(locks.chunkRevision(chunk) > localRevision, "Empty-then-relocked chunks must invalidate old snapshots");
+        var desired = new it.unimi.dsi.fastutil.longs.LongOpenHashSet();
+        for (int i = 0; i < 20000; i++) desired.add(i);
+        var observed = new it.unimi.dsi.fastutil.longs.LongOpenHashSet();
+        var delta = new tech.maloandre.chomagerie.network.LockOverlayDelta();
+        delta.update(desired);
+        for (int pass = 0; pass < 5; pass++) {
+            int count = 0;
+            for (var change : delta.drain(4096)) {
+                check(change.positions().length <= 4096, "Every overlay packet must stay bounded");
+                count += change.positions().length;
+                for (long packed : change.positions()) {
+                    if (change.locked()) observed.add(packed); else observed.remove(packed);
+                }
+            }
+            check(count <= 4096, "Dense constructions must not exceed per-player sync budget");
+        }
+        check(observed.equals(desired), "Progressive snapshots must eventually deliver every lock without truncation");
+        check(delta.drain(4096).isEmpty(), "Idle overlays must send no redundant positions");
+        delta.clear(); observed.clear(); delta.update(desired);
+        for (var change : delta.drain(128)) for (long packed : change.positions()) observed.add(packed);
+        var moved = new it.unimi.dsi.fastutil.longs.LongOpenHashSet(); moved.add(-999); moved.add(10000);
+        delta.update(moved);
+        for (var change : delta.drain(4096)) for (long packed : change.positions()) {
+            if (change.locked()) observed.add(packed); else observed.remove(packed);
+        }
+        check(observed.equals(moved), "Movement during a large transfer must discard obsolete queued additions");
+        delta.clear();
+        check(delta.drain(4096).isEmpty(), "Disconnect/reset must discard all queued work");
+        h.succeed();
+    }
+
+    @GameTest
+    public void targetedLockAndServerSelection(GameTestHelper h) {
+        var player = player(h, GameType.SURVIVAL); var level = h.getLevel(); var pos = h.absolutePos(LOCAL);
+        level.setBlock(pos, Blocks.GLASS_PANE.defaultBlockState(), 18);
+        player.setItemInHand(InteractionHand.MAIN_HAND, debug(level.getBlockState(pos), BlockStateProperties.WEST));
+        var dimension = level.dimension().identifier();
+        var locks = BlockStateLocks.get(level); locks.lock(pos, level.getBlockState(pos));
+        try {
+            var snapshot = tech.maloandre.chomagerie.network.TargetLockSync.snapshot(player, dimension, pos);
+            check(snapshot.known() && snapshot.locked(),
+                    "Target status must report the server lock independently of the area overlay");
+            var raw = io.netty.buffer.Unpooled.buffer();
+            var buf = new net.minecraft.network.RegistryFriendlyByteBuf(raw, level.registryAccess());
+            try {
+                var codec = tech.maloandre.chomagerie.network.TargetLockPayload.CODEC;
+                codec.encode(buf, snapshot);
+                check(codec.decode(buf).equals(snapshot), "Target response must survive network encoding");
+                var selection = player.getMainHandItem().get(DataComponents.DEBUG_STICK_STATE);
+                DataComponents.DEBUG_STICK_STATE.streamCodec().encode(buf, selection);
+                check(DataComponents.DEBUG_STICK_STATE.streamCodec().decode(buf).equals(selection),
+                        "Vanilla item component codec must carry the selected property without a new mod packet");
+                var request = new tech.maloandre.chomagerie.network.TargetLockRequestPayload(true, pos);
+                tech.maloandre.chomagerie.network.TargetLockRequestPayload.CODEC.encode(buf, request);
+                check(tech.maloandre.chomagerie.network.TargetLockRequestPayload.CODEC.decode(buf).equals(request),
+                        "Target request must survive network encoding");
+            } finally { buf.release(); }
+            locks.remove(pos);
+            check(!tech.maloandre.chomagerie.network.TargetLockSync.snapshot(player, dimension, pos).locked(),
+                    "Target indicator must reflect unlocks without the area overlay");
+            var far = new BlockPos(28000000, 64, 28000000);
+            check(!level.hasChunkAt(far), "Test target must be unloaded");
+            check(!tech.maloandre.chomagerie.network.TargetLockSync.snapshot(player, dimension, far).known() && !level.hasChunkAt(far),
+                    "Untrusted far targets must be rejected without loading chunks");
+            var wrongDimension = net.minecraft.resources.Identifier.parse("chomagerie:not_this_dimension");
+            check(!tech.maloandre.chomagerie.network.TargetLockSync.snapshot(player, wrongDimension, pos).known(),
+                    "Stale dimension targets must not expose lock state");
+        } finally { locks.remove(pos); }
         h.succeed();
     }
 

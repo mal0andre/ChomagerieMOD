@@ -78,7 +78,7 @@ public class LockOverlayClientGameTest implements FabricClientGameTest {
             context.getInput().pressMouse(com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT);
             context.runOnClient(client -> {
                 var screen = (ChomagerieConfigScreen) client.gui.screen();
-                check(screen.getConfigs().size() == 3, "Overlay tab must contain toggle, distance and color controls");
+                check(screen.getConfigs().size() == 4, "Overlay tab must contain toggle, distance, color and lock icon option");
                 var enabled = (fi.dy.masa.malilib.config.options.ConfigBoolean) screen.getConfigs().get(0).getConfig();
                 var distance = (fi.dy.masa.malilib.config.options.ConfigInteger) screen.getConfigs().get(1).getConfig();
                 enabled.setBooleanValue(true);

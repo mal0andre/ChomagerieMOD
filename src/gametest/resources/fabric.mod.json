@@ -8,7 +8,8 @@
       "tech.maloandre.chomagerie.BlockToolsGameTests"
     ],
     "fabric-client-gametest": [
-      "tech.maloandre.chomagerie.LockOverlayClientGameTest"
+      "tech.maloandre.chomagerie.LockOverlayClientGameTest",
+      "tech.maloandre.chomagerie.BlockToolsHudClientGameTest"
     ]
   }
 }

@@ -3,6 +3,7 @@ package tech.maloandre.chomagerie.blockstate;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import net.minecraft.core.BlockPos;
@@ -33,16 +34,30 @@ public final class BlockStateLocks extends SavedData {
     // Rebuilt from saved entries; queries never scan all locks in a dimension or load chunks.
     private final Long2ObjectOpenHashMap<LongSet> chunks = new Long2ObjectOpenHashMap<>();
 
+    private final Long2LongOpenHashMap chunkRevisions = new Long2LongOpenHashMap();
+    private long revision;
+    public long chunkRevision(long chunk) { return chunkRevisions.get(chunk); }
+    public long revision() { return revision; }
+
     public BlockStateLocks() { }
-    private BlockStateLocks(List<Entry> entries) { entries.forEach(e -> { locks.put(e.pos, e.state); index(BlockPos.of(e.pos)); }); }
+    private BlockStateLocks(List<Entry> entries) {
+        entries.forEach(e -> {
+            var pos = BlockPos.of(e.pos);
+            locks.put(e.pos, e.state);
+            index(pos);
+            chunkRevisions.put(ChunkPos.pack(pos), ++revision);
+        });
+    }
     private List<Entry> entries() {
         return locks.long2ObjectEntrySet().stream().map(e -> new Entry(e.getLongKey(), e.getValue())).toList();
     }
     public static BlockStateLocks get(ServerLevel level) { return level.getDataStorage().computeIfAbsent(TYPE); }
     public boolean contains(BlockPos pos) { return locks.containsKey(pos.asLong()); }
     public void lock(BlockPos pos, BlockState state) {
-        locks.put(pos.asLong(), state);
-        index(pos);
+        if (locks.put(pos.asLong(), state) == null) {
+            index(pos);
+            chunkRevisions.put(ChunkPos.pack(pos), ++revision);
+        }
         setDirty();
     }
     private void index(BlockPos pos) {
@@ -50,10 +65,14 @@ public final class BlockStateLocks extends SavedData {
     }
     public void remove(BlockPos pos) {
         if (locks.remove(pos.asLong()) == null) return;
+        revision++;
         long chunk = ChunkPos.pack(pos.getX() >> 4, pos.getZ() >> 4);
         LongSet positions = chunks.get(chunk);
         positions.remove(pos.asLong());
-        if (positions.isEmpty()) chunks.remove(chunk);
+        if (positions.isEmpty()) {
+            chunks.remove(chunk);
+            chunkRevisions.remove(chunk);
+        } else chunkRevisions.put(chunk, revision);
         setDirty();
     }
 
