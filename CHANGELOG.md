@@ -1,6 +1,6 @@
 ## Release
 
-### [Unreleased]
+### [1.6.1] - 2026-10-21
 
 #### Added
 - Illustrate all 291 wiki recipes with Minecraft-rendered inventory icons, native crafting grids and exact output counts; add real gameplay screenshots for lock tools, overlays, colors and the compact padlock.

@@ -4,9 +4,9 @@
 
 Chomagerie adds quality-of-life features for the Chomagerie server: automatic shulker refills, configurable player tags, useful recipes, crop protection, and block construction tools.
 
-**Version 1.6.0 · Minecraft 26.3 · Fabric.** This release adds the Survival Debug Stick, persistent block state locks, and a configurable client overlay. Update Chomagerie on both client and server together; modded connections require matching versions. See [release notes](CHANGELOG.md) and the [GitHub Wiki](https://github.com/mal0andre/ChomagerieMOD/wiki).
+**Version 1.6.1 · Minecraft 26.3 · Fabric.** This release improves lock controls and overlay performance, adds safe server configuration reload, and provides a fully illustrated recipe wiki. Update Chomagerie on both client and server together; modded connections require matching versions. See [release notes](CHANGELOG.md) and the [GitHub Wiki](https://github.com/mal0andre/ChomagerieMOD/wiki).
 
-Development additions after 1.6.0 include a configurable overlay shortcut (H by default), an optional compact padlock beside the crosshair for targeted locked blocks, cached geometry, frustum culling, and progressive server synchronization for dense builds. See the Unreleased changelog.
+Version 1.6.1 includes a configurable overlay shortcut (H by default), an optional compact padlock beside the crosshair for targeted locked blocks, cached geometry, frustum culling, and progressive server synchronization for dense builds. See the 1.6.1 changelog.
 
 ## Features ✨
 
