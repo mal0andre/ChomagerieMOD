@@ -1,19 +1,17 @@
 #!/usr/bin/env python3
-"""Publish actual GameTest screenshots and inventory illustrations into the local wiki clone."""
+"""Prepare unlabelled game screenshots and native inventory illustrations for the player wiki."""
 import argparse
+import io
 from pathlib import Path
-from PIL import Image, ImageDraw, ImageFont
+from zipfile import ZipFile
+from PIL import Image, ImageDraw, ImageOps
 
 ROOT = Path(__file__).resolve().parents[1]
-FONT = '/usr/share/fonts/truetype/freefont/FreeSans.ttf'
-BOLD = '/usr/share/fonts/truetype/freefont/FreeSansBold.ttf'
 
 
 def latest(folder, name):
     matches = list(folder.glob('*_' + name + '.png'))
-    if not matches:
-        raise ValueError(f'No screenshot for {name}; run the optional wiki asset export first')
-    return max(matches, key=lambda p: p.stat().st_mtime_ns)
+    return max(matches, key=lambda p: p.stat().st_mtime_ns) if matches else None
 
 
 def main(args):
@@ -27,58 +25,54 @@ def main(args):
         'fence-debug-stick': 'wiki-lock-03-debug-stick', 'fence-axe': 'wiki-lock-04-axe',
     }
     for name, source in screenshots.items():
-        with Image.open(latest(args.screenshots, source)) as picture:
-            picture.save(output / (name + '.png'), optimize=True)
+        screenshot = latest(args.screenshots, source)
+        target = output / (name + '.png')
+        if screenshot:
+            with Image.open(screenshot) as picture:
+                picture.save(target, optimize=True)
+        elif not target.is_file():
+            raise ValueError(f'Missing screenshot {source}; export the wiki assets first')
 
-    # Comparisons retain each entire frame; labels live outside the original screenshot.
     def comparison(filename, entries):
-        width, shot_width, shot_height = 1200, 588, 330
-        canvas = Image.new('RGB', (width, (shot_height + 54) * ((len(entries) + 1) // 2) + 12), '#f6f5f0')
-        draw = ImageDraw.Draw(canvas)
-        for index, (name, label) in enumerate(entries):
-            x, y = 8 + index % 2 * 600, index // 2 * (shot_height + 54)
-            draw.text((x, y + 12), label, font=ImageFont.truetype(BOLD, 22), fill='#292c30')
-            image = Image.open(output / (name + '.png')).convert('RGB')
-            image = image.resize((shot_width, shot_height), Image.Resampling.LANCZOS)
-            canvas.paste(image, (x, y + 48))
+        # Keep the game frames intact. Captions belong in Markdown, never on the image.
+        width, height, gap = 588, 330, 12
+        rows = (len(entries) + 1) // 2
+        canvas = Image.new('RGB', (width * 2 + gap, height * rows + gap * (rows - 1)), '#c6c6c6')
+        for index, name in enumerate(entries):
+            with Image.open(output / (name + '.png')) as picture:
+                frame = ImageOps.contain(picture.convert('RGB'), (width, height), Image.Resampling.LANCZOS)
+            x = index % 2 * (width + gap) + (width - frame.width) // 2
+            y = index // 2 * (height + gap) + (height - frame.height) // 2
+            canvas.paste(frame, (x, y))
         canvas.save(output / filename, optimize=True)
 
-    comparison('overlay-comparison.png', [('overlay-off', 'Overlay désactivé'), ('overlay-red', 'Overlay activé : escalier derrière le mur')])
-    comparison('locking-steps.png', [('fence-before', '1. Barrière isolée — rayon de miel en main'),
-                                    ('fence-honey', '2. Verrouillée — la nouvelle voisine ne la relie pas'),
-                                    ('fence-debug-stick', '3. Debug Stick — connexion modifiée, verrou gardé'),
-                                    ('fence-axe', '4. Hache — verrou retiré, comportement vanilla')])
-    full = Image.open(output / 'target-padlock.png').convert('RGB')
-    cx, cy = full.width // 2, full.height // 2
-    crop = full.crop((cx - 52, cy - 38, cx + 88, cy + 46)).resize((560, 336), Image.Resampling.NEAREST)
-    zoom = Image.new('RGB', (584, 394), '#f6f5f0')
-    draw = ImageDraw.Draw(zoom)
-    draw.text((12, 12), 'Cadenas près du viseur · détail agrandi ×4', font=ImageFont.truetype(BOLD, 23), fill='#292c30')
-    zoom.paste(crop, (12, 46))
-    zoom.save(output / 'target-padlock-zoom.png', optimize=True)
+    comparison('overlay-comparison.png', ['overlay-off', 'overlay-red'])
+    comparison('locking-steps.png', ['fence-before', 'fence-honey', 'fence-debug-stick', 'fence-axe'])
+    with Image.open(output / 'target-padlock.png') as full:
+        cx, cy = full.width // 2, full.height // 2
+        full.crop((cx - 52, cy - 38, cx + 88, cy + 46)).resize(
+            (560, 336), Image.Resampling.NEAREST).save(output / 'target-padlock-zoom.png', optimize=True)
 
-    tools = Image.new('RGB', (1020, 236), '#c6c6c6')
-    draw = ImageDraw.Draw(tools)
-    for index, (item, title, subtitle) in enumerate([
-        ('honeycomb', 'Rayon de miel', 'Verrouiller l’état'), ('debug_stick', 'Debug Stick', 'Modifier en gardant le verrou'),
-        ('iron_axe', 'Hache', 'Retirer le verrou')]):
-        x = index * 340
-        draw.rectangle((x + 132, 24, x + 208, 100), fill='#373737')
-        draw.rectangle((x + 135, 27, x + 208, 100), fill='#ffffff')
-        draw.rectangle((x + 135, 27, x + 205, 97), fill='#8b8b8b')
-        icon = Image.open(args.icons_dir / ('minecraft_' + item + '.png')).convert('RGB').resize((64, 64), Image.Resampling.NEAREST)
-        tools.paste(icon, (x + 138, 30))
-        draw.text((x + 170, 120), title, font=ImageFont.truetype(BOLD, 27), anchor='mt', fill='#292929')
-        draw.text((x + 170, 166), subtitle, font=ImageFont.truetype(FONT, 22), anchor='mt', fill='#424242')
-        if index < 2:
-            draw.polygon([(x + 316, 55), (x + 332, 65), (x + 316, 75)], fill='#6b6b6b')
-    tools.save(output / 'locking-tools.png', optimize=True)
-    print(f'{len(screenshots)} captures et 4 illustrations écrites dans {output}')
+    with ZipFile(args.minecraft_jar) as archive:
+        texture = Image.open(io.BytesIO(archive.read(
+            'assets/minecraft/textures/gui/container/crafting_table.png'))).convert('RGBA')
+    tools = texture.crop((0, 0, 176, 166))
+    ImageDraw.Draw(tools).rectangle((8, 8, 167, 75), fill='#c6c6c6')
+    slot = texture.crop((29, 16, 47, 34))
+    for x, item in zip((43, 79, 115), ('honeycomb', 'debug_stick', 'iron_axe')):
+        tools.paste(slot, (x, 34))
+        with Image.open(args.icons_dir / ('minecraft_' + item + '.png')) as icon:
+            tools.paste(icon.resize((16, 16), Image.Resampling.NEAREST), (x + 1, 35))
+    tools.resize((704, 664), Image.Resampling.NEAREST).save(output / 'locking-tools.png', optimize=True)
+    print(f'{len(screenshots)} screenshots and 4 unlabelled illustrations prepared in {output}')
 
 
 if __name__ == '__main__':
+    version = next(line.split('=', 1)[1] for line in (ROOT / 'gradle.properties').read_text(errors='replace').splitlines()
+                   if line.startswith('minecraft_version='))
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--wiki-dir', type=Path, default=ROOT / 'wiki')
     parser.add_argument('--screenshots', type=Path, default=ROOT / 'build/run/clientGameTest/screenshots')
     parser.add_argument('--icons-dir', type=Path, default=ROOT / 'build/wiki/item-icons')
+    parser.add_argument('--minecraft-jar', type=Path, default=Path.home() / '.gradle/caches/fabric-loom' / version / 'minecraft-client.jar')
     main(parser.parse_args())

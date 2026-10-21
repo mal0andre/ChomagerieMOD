@@ -12,14 +12,14 @@ from zipfile import ZipFile
 ROOT = Path(__file__).resolve().parents[1]
 MEDIA = 'https://raw.githubusercontent.com/wiki/mal0andre/ChomagerieMOD/'
 PAGES = {
-    'Recettes-utilitaires': ('Recettes utilitaires et haut fourneau', 'Outils, blocs de lumière, conversions et fonte des blocs bruts.'),
-    'Recettes-cuivre': ('Recettes de cuivre', 'Transformations des familles de cuivre, oxydation et variantes cirées.'),
-    'Recettes-coraux': ('Conversions de coraux', 'Conversions entre blocs de corail, coraux et éventails.'),
-    'Recettes-tailleur': ('Recettes du tailleur de pierre', 'Dalles et escaliers en bois, dont le peuplier.'),
-    'Recettes-vanilla': ('Recettes vanilla remplacées', 'Recettes du namespace minecraft remplacées par Chomagerie.'),
+    'Utility-Recipes': ('Utility Recipes', 'Tools, light blocks, material conversions and smelting raw ore blocks.'),
+    'Copper-Recipes': ('Copper Recipes', 'Copper shapes, oxidation stages and waxed variants.'),
+    'Coral-Recipes': ('Coral Recipes', 'Convert between coral blocks, corals and coral fans.'),
+    'Stonecutter-Recipes': ('Stonecutter Recipes', 'Cut wooden slabs and stairs, including pale oak.'),
+    'Vanilla-Recipe-Changes': ('Vanilla Recipe Changes', 'Adjusted recipes for trapdoors, wool and other familiar items.'),
 }
-TYPES = {'crafting_shaped': 'Fabrication', 'crafting_shapeless': 'Sans disposition',
-         'stonecutting': 'Tailleur de pierre', 'blasting': 'Haut fourneau'}
+TYPES = {'crafting_shaped': 'Crafting table', 'crafting_shapeless': 'Shapeless crafting',
+         'stonecutting': 'Stonecutter', 'blasting': 'Blast furnace'}
 REPRESENTATIVES = {'#minecraft:logs': 'minecraft:oak_log'}
 
 
@@ -49,15 +49,15 @@ def recipes():
         if kind not in TYPES:
             raise ValueError(f'Unsupported recipe type: {kind}')
         if namespace == 'minecraft':
-            page = 'Recettes-vanilla'
+            page = 'Vanilla-Recipe-Changes'
         elif name.startswith(('utility/copper/', 'utility/waxed_copper/')):
-            page = 'Recettes-cuivre'
+            page = 'Copper-Recipes'
         elif name.startswith('corals/'):
-            page = 'Recettes-coraux'
+            page = 'Coral-Recipes'
         elif name.startswith('stonecutter/'):
-            page = 'Recettes-tailleur'
+            page = 'Stonecutter-Recipes'
         else:
-            page = 'Recettes-utilitaires'
+            page = 'Utility-Recipes'
         yield {'id': f'{namespace}:{name}', 'data': data, 'kind': kind, 'page': page, 'path': path,
                'image': f'images/recipes/{namespace}/{name}.png'}
 
@@ -89,22 +89,21 @@ def required_icons(all_recipes):
 
 class Renderer:
     def __init__(self, jar, icons, language):
-        from PIL import Image, ImageFont
+        from PIL import Image
         self.Image = Image
         self.icons = icons
         self.scale = 4
         with ZipFile(jar) as archive:
             self.textures = {name: Image.open(io.BytesIO(archive.read(
                 f'assets/minecraft/textures/gui/container/{name}.png'))).convert('RGBA')
-                for name in ['crafting_table', 'furnace']}
+                for name in ['crafting_table', 'blast_furnace', 'stonecutter']}
             self.font_sheet = Image.open(io.BytesIO(archive.read('assets/minecraft/textures/font/ascii.png'))).convert('RGBA')
             self.english = json.loads(archive.read('assets/minecraft/lang/en_us.json'))
-        self.language = json.loads(language.read_text())
-        self.font = ImageFont.truetype('/usr/share/fonts/truetype/freefont/FreeSans.ttf', 28)
+        self.language = json.loads(language.read_text()) if language else self.english
 
     def name(self, name):
         if name.startswith('#'):
-            return 'Bûche au choix' if name == '#minecraft:logs' else name
+            return 'Any log' if name == '#minecraft:logs' else name
         key = name.replace(':', '.')
         return next((dictionary[prefix + key] for dictionary in [self.language, self.english]
                      for prefix in ['item.', 'block.'] if prefix + key in dictionary), name)
@@ -129,10 +128,13 @@ class Renderer:
             canvas.paste((255, 255, 255), at, mask)
 
     def render(self, recipe, target):
-        from PIL import ImageDraw
         kind, data = recipe['kind'], recipe['data']
+        # Full native workstation and empty player inventory, with no added labels.
+        texture = ('crafting_table' if kind.startswith('crafting_') else
+                   'blast_furnace' if kind == 'blasting' else 'stonecutter')
+        canvas = self.textures[texture].crop((0, 0, 176, 166)).resize(
+            (704, 664), self.Image.Resampling.NEAREST)
         if kind.startswith('crafting_'):
-            canvas = self.textures['crafting_table'].crop((0, 0, 176, 78)).resize((704, 312), self.Image.Resampling.NEAREST)
             if kind == 'crafting_shaped':
                 for row, line in enumerate(data['pattern']):
                     for column, char in enumerate(line):
@@ -142,58 +144,45 @@ class Renderer:
                 for index, value in enumerate(data['ingredients']):
                     self.paste_item(canvas, ingredient_id(value), 30 + index % 3 * 18, 17 + index // 3 * 18)
             output_x, output_y = 124, 35
-            label_x = 28
         elif kind == 'blasting':
-            canvas = self.textures['furnace'].crop((0, 0, 176, 78)).resize((704, 312), self.Image.Resampling.NEAREST)
             self.paste_item(canvas, ingredient_id(data['ingredient']), 56, 17)
-            output_x, output_y, label_x = 116, 35, 8
+            output_x, output_y = 116, 35
         else:
-            # Compact inventory-style conversion: standard slots, native crafting arrow, exact item models.
-            canvas = self.textures['crafting_table'].crop((0, 0, 176, 78)).resize((704, 312), self.Image.Resampling.NEAREST)
-            draw = ImageDraw.Draw(canvas)
-            draw.rectangle((8, 52, 350, 292), fill=(198, 198, 198))
-            slot = self.textures['crafting_table'].crop((29, 16, 47, 34)).resize((72, 72), self.Image.Resampling.NEAREST)
-            canvas.paste(slot, (56 * 4 - 4, 35 * 4 - 4))
-            self.paste_item(canvas, ingredient_id(data['ingredient']), 56, 35)
-            output_x, output_y, label_x = 124, 35, 8
+            # Show the selected recipe in the stonecutter's native selection area.
+            slot = self.textures['crafting_table'].crop((29, 16, 47, 34)).resize(
+                (72, 72), self.Image.Resampling.NEAREST)
+            canvas.paste(slot, (51 * 4, 14 * 4))
+            self.paste_item(canvas, ingredient_id(data['ingredient']), 20, 33)
+            output_id, _, components = result(data)
+            self.paste_item(canvas, output_id, 52, 15, components)
+            output_x, output_y = 143, 33
         output_id, count, components = result(data)
         self.paste_item(canvas, output_id, output_x, output_y, components)
         self.number(canvas, count, output_x, output_y)
-        ImageDraw.Draw(canvas).text((label_x * 4, 4 * 4), TYPES[kind], font=self.font, fill=(64, 64, 64))
-        bottom = self.textures['crafting_table'].crop((0, 163, 176, 166)).resize((704, 12), self.Image.Resampling.NEAREST)
-        canvas.paste(bottom, (0, 300))
         target.parent.mkdir(parents=True, exist_ok=True)
         canvas.save(target, optimize=True)
-
-
-def source_url(recipe):
-    return 'https://github.com/mal0andre/ChomagerieMOD/blob/master/' + quote(recipe['path'].relative_to(ROOT).as_posix(), safe='/')
 
 
 def entry(recipe, renderer):
     output_id, count, components = result(recipe['data'])
     title = f'{count} × {renderer.name(output_id)}'
     if 'minecraft:block_state' in components:
-        title += ' — niveau ' + components['minecraft:block_state']['level']
+        title += ' — light level ' + components['minecraft:block_state']['level']
     items = Counter(ingredient_id(value) for value in inputs(recipe) if value is not None)
     legend = ', '.join(f'{amount} × {renderer.name(name)}' for name, amount in items.items())
-    alt = f'{TYPES[recipe["kind"]]} : {legend} → {title}'
+    alt = f'{TYPES[recipe["kind"]]}: {legend} → {title}'
     body = f'### {title}\n\n![{alt}]({MEDIA}{quote(recipe["image"], safe="/")})\n\n'
+    body += f'**{TYPES[recipe["kind"]]}** · Ingredients: {legend}.\n\n'
     notes = []
     if recipe['kind'] == 'crafting_shapeless':
-        notes.append('Sans disposition : les ingrédients peuvent être placés dans n’importe quel ordre.')
+        notes.append('Shapeless: place the ingredients in any order.')
     if any(name.startswith('#') for name in items):
-        notes.append('La bûche de chêne représente le tag `#minecraft:logs` : toute bûche compatible est acceptée.')
+        notes.append('The oak log stands for any compatible log.')
     if recipe['kind'] == 'blasting':
         data = recipe['data']
-        notes.append(f'{data["cookingtime"] / 20:g} s à 20 TPS · {data["experience"]} XP · combustible compatible au choix.')
-    if components:
-        notes.append('Composants : `' + json.dumps(components, ensure_ascii=False, separators=(',', ':')) + '`.')
+        notes.append(f'{data["cookingtime"] / 20:g} seconds · {data["experience"]} XP · use any suitable fuel.')
     if notes:
         body += ' '.join(notes) + '\n\n'
-    body += '<details>\n<summary>Ingrédients et fichier source</summary>\n\n'
-    body += '\n'.join(f'- {amount} × {renderer.name(name)} — `{name}`' for name, amount in items.items())
-    body += f'\n\nRecette : [`{recipe["id"]}`]({source_url(recipe)})\n\n</details>\n\n'
     return body
 
 
@@ -202,13 +191,13 @@ def generate(args):
     if args.prepare_icons:
         args.icons_dir.mkdir(parents=True, exist_ok=True)
         (args.icons_dir / 'items.txt').write_text('\n'.join(required_icons(all_recipes)) + '\n')
-        print(f'{len(required_icons(all_recipes))} icônes à rendre dans {args.icons_dir}')
+        print(f'{len(required_icons(all_recipes))} icons to render in {args.icons_dir}')
         return
     if not (args.wiki_dir / 'Home.md').is_file():
         raise ValueError('The wiki clone must contain Home.md')
     missing = [name for name in required_icons(all_recipes) if not (args.icons_dir / (name.replace(':', '_') + '.png')).is_file()]
     if missing:
-        raise ValueError(f'{len(missing)} icônes manquantes. Lancer --prepare-icons puis le test client WikiAssetsClientGameTest.')
+        raise ValueError(f'{len(missing)} missing icons. Run --prepare-icons, then WikiAssetsClientGameTest.')
     renderer = Renderer(args.minecraft_jar, args.icons_dir, args.language_file)
     grouped = defaultdict(list)
     manifest = []
@@ -217,8 +206,8 @@ def generate(args):
         grouped[recipe['page']].append(recipe)
         manifest.append({'id': recipe['id'], 'image': recipe['image']})
     for page, (title, intro) in PAGES.items():
-        text = f'# {title}\n\n{intro}\n\n**{len(grouped[page])} recettes**, illustrées avec les objets et blocs rendus dans Minecraft. Les quantités et les grilles proviennent directement des JSON du mod.\n\n[Comprendre les visuels et voir les catégories](Recettes).\n\n'
-        if page == 'Recettes-cuivre':
+        text = f'# {title}\n\n{intro}\n\n**{len(grouped[page])} recipes.** Match the ingredients and quantities below in the workstation shown.\n\n[How to read recipes and browse categories](Recipes).\n\n'
+        if page == 'Copper-Recipes':
             families = defaultdict(list)
             for recipe in grouped[page]:
                 family = recipe['path'].parent.name
@@ -226,15 +215,15 @@ def generate(args):
                 families[family].append(recipe)
             for family, members in sorted(families.items()):
                 name = renderer.name('minecraft:' + {'copper_slab': 'cut_copper_slab', 'copper_stairs': 'cut_copper_stairs'}.get(family, family))
-                text += f'<details>\n<summary><strong>{html.escape(name)} — {len(members)} recettes</strong></summary>\n\n'
+                text += f'<details>\n<summary><strong>{html.escape(name)} — {len(members)} recipes</strong></summary>\n\n'
                 text += ''.join(entry(recipe, renderer) for recipe in members) + '</details>\n\n'
         else:
             text += ''.join(entry(recipe, renderer) for recipe in grouped[page])
-        text += '[Retour aux recettes](Recettes) · [Accueil](Home)\n'
+        text += '[All recipes](Recipes) · [Home](Home)\n'
         (args.wiki_dir / (page + '.md')).write_text(text)
     manifest_path = args.wiki_dir / 'images/recipes/manifest.json'
     manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + '\n')
-    print(f'{len(all_recipes)} recettes illustrées dans {len(grouped)} pages.')
+    print(f'{len(all_recipes)} recipes illustrated across {len(grouped)} pages.')
 
 
 if __name__ == '__main__':
@@ -247,11 +236,4 @@ if __name__ == '__main__':
     parser.add_argument('--language-file', type=Path)
     parser.add_argument('--prepare-icons', action='store_true')
     args = parser.parse_args()
-    if not args.prepare_icons and args.language_file is None:
-        indexes = sorted((cache / 'assets/indexes').glob(version + '-*.json'))
-        if not indexes:
-            parser.error('Minecraft assets unavailable; specify --language-file and --minecraft-jar')
-        index = json.loads(indexes[-1].read_text())
-        language_hash = index['objects']['minecraft/lang/fr_fr.json']['hash']
-        args.language_file = cache / 'assets/objects' / language_hash[:2] / language_hash
     generate(args)

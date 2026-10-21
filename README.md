@@ -1,6 +1,6 @@
 # Chomagerie 🧀
 
-📖 [Wiki GitHub complet](https://github.com/mal0andre/ChomagerieMOD/wiki) · [Installation](https://github.com/mal0andre/ChomagerieMOD/wiki/Installation) · [Configuration](https://github.com/mal0andre/ChomagerieMOD/wiki/Configuration-serveur)
+📖 [Player Wiki](https://github.com/mal0andre/ChomagerieMOD/wiki) · [Installation](https://github.com/mal0andre/ChomagerieMOD/wiki/Installation) · [Recipes](https://github.com/mal0andre/ChomagerieMOD/wiki/Recipes) · [Maintainer notes](docs/wiki-maintenance/README.md)
 
 Chomagerie adds quality-of-life features for the Chomagerie server: automatic shulker refills, configurable player tags, useful recipes, crop protection, and block construction tools.
 
@@ -63,7 +63,7 @@ With Chomagerie on both client and server, enable **Lock Overlay** in the **K** 
 
 Operators can reload `config/chomagerie/block-tools.json` with `/chomagerie reload` (permission level 2). Invalid files leave the active settings intact and report the offending field. Changing the Debug Stick crafting switch also reloads Minecraft data automatically.
 
-Server policy, supported blocks, persistence details and test instructions: [GitHub Wiki](https://github.com/mal0andre/ChomagerieMOD/wiki/Verrouillage-des-blocs). Inspired and adapted from [JustS-js/debugStickSurvival](https://github.com/JustS-js/debugStickSurvival) (CC0-1.0).
+Player instructions: [Block Locking](https://github.com/mal0andre/ChomagerieMOD/wiki/Block-Locking). Server policy, persistence and test instructions are in the [maintainer notes](docs/wiki-maintenance/README.md). Inspired and adapted from [JustS-js/debugStickSurvival](https://github.com/JustS-js/debugStickSurvival) (CC0-1.0).
 
 ### Useful Recipes 🔨
 

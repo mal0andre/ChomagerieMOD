@@ -12,8 +12,11 @@ MEDIA = 'https://raw.githubusercontent.com/wiki/mal0andre/ChomagerieMOD/'
 
 def verify(wiki):
     pages = {p.stem: p for p in wiki.glob('*.md')}
-    required = {'Home', '_Sidebar', '_Footer', 'Installation', 'Debug-Stick', 'Verrouillage-des-blocs',
-                'Configuration-serveur', 'Recettes', 'Developpement-et-tests', 'Publication-du-wiki'}
+    required = {'Home', '_Sidebar', '_Footer', 'Installation', 'Getting-Started', 'Debug-Stick',
+                'Block-Locking', 'Lock-Overlay', 'Recipes', 'Controls', 'Troubleshooting'}
+    recipe_pages = {'Utility-Recipes', 'Copper-Recipes', 'Coral-Recipes',
+                    'Stonecutter-Recipes', 'Vanilla-Recipe-Changes'}
+    required |= recipe_pages
     errors = [f'Missing page: {name}' for name in sorted(required - pages.keys())]
     links = examples = images = 0
     recipe_ids = []
@@ -51,8 +54,9 @@ def verify(wiki):
                 json.loads(example)
             except ValueError as error:
                 errors.append(f'{path.name}: invalid JSON example: {error}')
-        if name.startswith('Recettes-'):
-            recipe_ids.extend(re.findall(r'^Recette : \[`([^`]+)`\]\(https://github.com/', text, re.M))
+        if name in recipe_pages:
+            for image_path in re.findall(re.escape(MEDIA) + r'images/recipes/([^)]+)\.png', text):
+                recipe_ids.append(unquote(image_path).replace('/', ':', 1))
     expected = set()
     for path in (ROOT / 'src/main/resources/data').glob('*/recipe/**/*.json'):
         parts = path.relative_to(ROOT / 'src/main/resources/data').parts
@@ -74,7 +78,7 @@ def verify(wiki):
                 errors.append(f'Invalid recipe visual: {entry["id"]}')
             else:
                 with Image.open(image) as picture:
-                    if picture.size != (704, 312):
+                    if picture.size != (704, 664):
                         errors.append(f'Unexpected recipe image dimensions: {image}')
     for name in pages.keys() - {'_Sidebar', '_Footer', 'Home'}:
         # Every page must have at least one incoming local link from another page.
@@ -82,8 +86,8 @@ def verify(wiki):
             errors.append(f'{name}: no incoming navigation link')
     if errors:
         raise SystemExit('\n'.join(errors))
-    print(f'Wiki valide : {len(pages)} fichiers Markdown, {links} liens internes, '
-          f'{examples} exemples JSON, {len(recipe_ids)} recettes et {images} images référencées.')
+    print(f'Wiki valid: {len(pages)} Markdown files, {links} internal links, '
+          f'{examples} JSON examples, {len(recipe_ids)} recipes and {images} image references.')
 
 
 if __name__ == '__main__':
