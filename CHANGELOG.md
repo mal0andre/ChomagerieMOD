@@ -3,6 +3,8 @@
 ### [Unreleased]
 
 #### Added
+- Illustrate all 291 wiki recipes with Minecraft-rendered inventory icons, native crafting grids and exact output counts; add real gameplay screenshots for lock tools, overlays, colors and the compact padlock.
+- Add operator-only `/chomagerie reload` for validated hot reload of block-tools.json, with readable JSON errors, preservation of the active policy on rejection, and automatic vanilla data reload when the Debug Stick crafting switch changes.
 - Add a configurable shortcut (H by default) to toggle and save the lock overlay without opening the menu.
 - Add an optional small padlock beside the crosshair for the nearby aimed locked block, even with the area overlay disabled; keep the vanilla Debug Stick property messages.
 - Add server tests for progressive delivery of 20,000 locks, chunk revision invalidation, target validation, and packet codecs, plus a graphical test for the compact padlock, absence of duplicate property text, and key rebinding.

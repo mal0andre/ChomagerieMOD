@@ -31,7 +31,7 @@ public class LockOverlayClientGameTest implements FabricClientGameTest {
             server.runCommand("fill -4 -60 8 4 -55 8 minecraft:stone");
             server.runOnServer(instance -> {
                 var level = connection.getServerLevel();
-                level.setBlock(TARGET, Blocks.STONE.defaultBlockState(), 3);
+                level.setBlock(TARGET, Blocks.OAK_STAIRS.defaultBlockState(), 3);
                 BlockStateLocks.get(level).lock(TARGET, level.getBlockState(TARGET));
             });
             context.runOnClient(client -> { if (!client.gui.hud.isHidden()) client.gui.hud.toggle(); });
@@ -60,7 +60,7 @@ public class LockOverlayClientGameTest implements FabricClientGameTest {
             synchronize(context, connection);
             check(redPixels(context.takeScreenshot("locks-unlocked")) <= baseline + 5,
                     "Server unlock must remove the overlay");
-            server.runOnServer(instance -> BlockStateLocks.get(connection.getServerLevel()).lock(TARGET, Blocks.STONE.defaultBlockState()));
+            server.runOnServer(instance -> BlockStateLocks.get(connection.getServerLevel()).lock(TARGET, Blocks.OAK_STAIRS.defaultBlockState()));
             synchronize(context, connection);
             context.runOnClient(client -> ChomagerieConfig.getInstance().lockOverlay.enabled = false);
             synchronize(context, connection);

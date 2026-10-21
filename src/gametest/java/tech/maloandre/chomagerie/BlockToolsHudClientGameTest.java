@@ -33,6 +33,22 @@ public class BlockToolsHudClientGameTest implements FabricClientGameTest {
         });
         try (var world = context.worldBuilder().create()) {
             var connection = world.getConnection(); var server = world.getServer();
+            var policyBefore = new java.util.concurrent.atomic.AtomicReference<tech.maloandre.chomagerie.blockstate.BlockToolsConfig>();
+            server.runOnServer(instance -> {
+                policyBefore.set(tech.maloandre.chomagerie.blockstate.BlockToolsConfig.get());
+                var player = connection.getServerPlayer();
+                instance.getPlayerList().op(new net.minecraft.server.players.NameAndId(player.getUUID(), player.getGameProfile().name()));
+            });
+            context.waitFor(client -> {
+                var root = client.getConnection().getCommands().getRoot().getChild("chomagerie");
+                return root != null && root.getChild("reload") != null;
+            });
+            context.runOnClient(client -> {
+                client.getConnection().sendCommand("chomagerie reload");
+            });
+            context.waitTicks(10);
+            server.runOnServer(instance -> check(tech.maloandre.chomagerie.blockstate.BlockToolsConfig.get() != policyBefore.get(),
+                    "Reload typed by a modded client must reach and update the server"));
             server.runCommand("gamemode creative @p");
             server.runCommand("tp @p 0.5 -60 3.5 180 0");
             server.runOnServer(instance -> {

@@ -5,11 +5,13 @@
   "environment": "*",
   "entrypoints": {
     "fabric-gametest": [
-      "tech.maloandre.chomagerie.BlockToolsGameTests"
+      "tech.maloandre.chomagerie.BlockToolsGameTests",
+      "tech.maloandre.chomagerie.ConfigReloadGameTests"
     ],
     "fabric-client-gametest": [
       "tech.maloandre.chomagerie.LockOverlayClientGameTest",
-      "tech.maloandre.chomagerie.BlockToolsHudClientGameTest"
+      "tech.maloandre.chomagerie.BlockToolsHudClientGameTest",
+      "tech.maloandre.chomagerie.WikiAssetsClientGameTest"
     ]
   }
 }

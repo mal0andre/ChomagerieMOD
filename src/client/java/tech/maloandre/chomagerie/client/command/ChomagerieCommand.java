@@ -12,6 +12,16 @@ public class ChomagerieCommand {
 
     public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher) {
         dispatcher.register(ClientCommands.literal("chomagerie")
+                        .then(ClientCommands.literal("reload")
+                                .requires(source -> source.getPlayer().permissions().hasPermission(
+                                        net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER))
+                                .executes(context -> {
+                                    // Fabric claims this root for client commands. Send this argument-free
+                                    // server command directly to avoid recursively invoking its client handler.
+                                    context.getSource().getClient().getConnection().send(
+                                            new net.minecraft.network.protocol.game.ServerboundChatCommandPacket("chomagerie reload"));
+                                    return 1;
+                                }))
                         .then(ClientCommands.literal("shulkerrefill")
                                 .then(ClientCommands.literal("toggle")
                                         .executes(ChomagerieCommand::toggleShulkerRefill))

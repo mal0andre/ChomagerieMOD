@@ -61,6 +61,8 @@ Right-click a block with at least one editable state property with honeycomb to 
 
 With Chomagerie on both client and server, enable **Lock Overlay** in the **K** menu to highlight locked blocks through walls. A color picker lets you choose the highlight color (red by default). Viewing range is adjustable from 8 to 128 blocks (32 by default); the overlay is disabled by default.
 
+Operators can reload `config/chomagerie/block-tools.json` with `/chomagerie reload` (permission level 2). Invalid files leave the active settings intact and report the offending field. Changing the Debug Stick crafting switch also reloads Minecraft data automatically.
+
 Server policy, supported blocks, persistence details and test instructions: [GitHub Wiki](https://github.com/mal0andre/ChomagerieMOD/wiki/Verrouillage-des-blocs). Inspired and adapted from [JustS-js/debugStickSurvival](https://github.com/JustS-js/debugStickSurvival) (CC0-1.0).
 
 ### Useful Recipes 🔨

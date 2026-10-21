@@ -40,6 +40,7 @@ public class Chomagerie implements ModInitializer {
         ServerConfig.getInstance();
         ModGameRules.register();
         BlockToolsConfig.load();
+        tech.maloandre.chomagerie.command.ChomagerieReloadCommand.register();
         SurvivalDebugStick.register();
         LockOverlaySync.register();
         TargetLockSync.register();
